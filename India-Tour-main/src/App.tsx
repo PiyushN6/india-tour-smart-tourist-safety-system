@@ -6,17 +6,8 @@ import StateDetailPage from './features/destinations/StateDetailPage';
 import CityDetailPage from './features/destinations/CityDetailPage';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
+import HomePage from './new-ui/pages/HomePage';
 import CityOverviewPage from './pages/CityOverviewPage';
-import UserProfile from './features/profile/UserProfile';
-import AdminPage from './pages/AdminPage';
-import DestinationsPage from './features/destinations/DestinationsPage';
-import DigitalIDPage from './pages/DigitalIDPage';
-import SafetyHomePage from './features/safety/SafetyHomePage';
-import SafetyTouristDashboardPage from './features/safety/SafetyTouristDashboardPage';
-import SafetyDigitalIDPage from './features/safety/SafetyDigitalIDPage';
-import SafetyAdminPage from './features/safety/SafetyAdminPage';
-import SafetyMapPage from './features/safety/SafetyMapPage';
 import ToursPage from './features/marketing/ToursPage';
 import ExperiencesPage from './features/marketing/ExperiencesPage';
 import BlogPage from './features/marketing/BlogPage';
@@ -26,6 +17,16 @@ import TermsPage from './features/content/TermsPage';
 import SitemapPage from './features/content/SitemapPage';
 import ItineraryPage from './features/itinerary/ItineraryPage';
 import { ItineraryProvider } from './context/ItineraryContext';
+
+// New UI feature pages
+import DestinationExplorer from '@/features/destinations/DestinationExplorer';
+import SafetyDashboard from '@/features/safety/SafetyDashboard';
+import SafetyMap from '@/features/safety/SafetyMap';
+import SafetyInformationHub from '@/features/safety/SafetyInformationHub';
+import SafetyDigitalIdPage from '@/features/safety/SafetyDigitalIdPage';
+import SafetyAdminShell from '@/features/safety/SafetyAdminShell';
+import NewUserProfile from '@/features/profile/UserProfile';
+import GamificationSystem from '@/features/gamification/GamificationSystem';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
@@ -73,26 +74,35 @@ function AppContent() {
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/destinations" element={<DestinationsPage />} />
+                {/* New UI destinations explorer replaces legacy destinations page */}
+                <Route path="/destinations" element={<DestinationExplorer />} />
                 <Route path="/destinations/:stateName" element={<StateDetailPage />} />
                 <Route path="/destinations/:stateName/:cityName" element={<CityDetailPage />} />
                 <Route path="/city/:cityId" element={<CityOverviewPage />} />
+
                 <Route path="/tours" element={<ToursPage />} />
                 <Route path="/experiences" element={<ExperiencesPage />} />
                 <Route path="/blog" element={<BlogPage />} />
                 <Route path="/faq" element={<FAQPage />} />
-                <Route path="/profile" element={<UserProfile />} />
-                <Route path="/digital-id" element={<DigitalIDPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/safety" element={<SafetyHomePage />} />
-                <Route path="/safety/dashboard" element={<SafetyTouristDashboardPage />} />
-                <Route path="/safety/digital-id" element={<SafetyDigitalIDPage />} />
-                <Route path="/safety/map" element={<SafetyMapPage />} />
-                <Route path="/safety/admin" element={<SafetyAdminPage />} />
+
+                {/* New UI profile page */}
+                <Route path="/profile" element={<NewUserProfile />} />
+
+                {/* Safety routes: use new UI shells for dashboards, digital ID, and admin */}
+                <Route path="/safety/dashboard" element={<SafetyDashboard />} />
+                <Route path="/safety/map" element={<SafetyMap />} />
+                <Route path="/safety/information" element={<SafetyInformationHub />} />
+                <Route path="/safety/digital-id" element={<SafetyDigitalIdPage />} />
+                <Route path="/safety/admin" element={<SafetyAdminShell />} />
+
+                {/* Static content + itinerary remain unchanged */}
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/sitemap" element={<SitemapPage />} />
                 <Route path="/itinerary" element={<ItineraryPage />} />
+
+                {/* New gamification route from new UI */}
+                <Route path="/gamification" element={<GamificationSystem />} />
               </Routes>
             </main>
             <Footer />
