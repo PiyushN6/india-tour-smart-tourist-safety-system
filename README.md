@@ -9,11 +9,11 @@ India Tour – Smart Tourist Safety System is a full‑stack web application tha
 - Supabase‑backed authentication (Google Sign‑In)
 - Itinerary management and safety alerts
 
-The project is split into:
+The project is split into three major parts:
 
 - **Frontend**: React + Vite (TypeScript) deployed on **Netlify**
 - **Backend API**: FastAPI (Python) deployed on **Render**
-- **Database/Auth**: **Supabase** (PostgreSQL + Auth)
+- **Database/Auth**: **Supabase** (PostgreSQL + Auth) with SQL migrations stored in the repo
 
 ---
 
@@ -35,9 +35,11 @@ The project is split into:
   - Uses SQLAlchemy + Supabase Postgres (Session Pooler)
   - CORS configured for localhost + Netlify
 
-- **Supabase**
+- **Supabase (Database & Auth)**  
+  Path: `India-Tour-main/supabase/` and external Supabase project
   - Authentication (Google OAuth)
-  - PostgreSQL database for users, itineraries, risk zones, alerts
+  - PostgreSQL database for users, itineraries, risk zones, alerts and digital IDs
+  - SQL migrations & schema files tracked in `supabase/migrations` and `supabase/apply_migration.sql`
 
 ### 2.2 Data Flow
 
@@ -235,9 +237,68 @@ Configure these in **Render → Service → Environment** for the FastAPI servic
 
 ---
 
-## 6. Local Development
+## 6. Database / Supabase
 
-### 6.1 Prerequisites
+### 6.1 Supabase Project & Local Config
+
+This project uses **Supabase** both as an authentication provider and as the primary PostgreSQL database.
+
+- Remote project ID: `hqcgedoxnyvrwbhyxpql`.
+- Local Supabase configuration lives in: `India-Tour-main/supabase/`.
+  - `config.toml` – Supabase local dev configuration (ports, API schemas, seed files, studio, etc.).
+  - `apply_migration.sql` – consolidated SQL script to create/patch core tables and sample data.
+  - `migrations/` – individual SQL migration files for incremental schema changes.
+  - `backup_schema_*.sql` – backup of schema at specific points in time.
+
+From `config.toml`:
+
+- `db.port = 54322` – local Postgres port.
+- `db.migrations.enabled = true` – migration files are applied during `supabase db reset`.
+- `db.seed.enabled = true` and `db.seed.sql_paths = ["./seed.sql"]` – optional seeding after migrations.
+- `realtime.enabled = true`, `auth.enabled = true`, `storage.enabled = true` – real-time, auth, and storage are enabled in local Supabase.
+
+### 6.2 Core Schema (apply_migration.sql)
+
+The `apply_migration.sql` script performs core schema tasks:
+
+- Ensures `uuid-ossp` extension is enabled.
+- Creates `public.states` table with fields such as `id` (UUID), `name`, `code`, `description`, `capital`, `region`, `population`, `area_km2`, `languages`, `best_time_to_visit`, `image_url`, `created_at`, `updated_at`.
+- Adds `state_id` foreign key column to `public.cities` if it does not exist, plus index and foreign key constraint.
+- Defines a reusable trigger function `update_modified_column()` and trigger `update_states_modtime` to keep `updated_at` current.
+- Defines `public.search_states(query TEXT)` for full‑text search on states.
+- Defines `public.state_statistics` view combining states, cities, and places with aggregated counts and average rating.
+- Inserts sample states (Andhra Pradesh, Madhya Pradesh, Rajasthan, Kerala, Uttar Pradesh) with metadata and example image URLs.
+- Migrates existing city `state` names into the new `states` table and backfills `cities.state_id` from `states.id`.
+
+Additional migrations live under `supabase/migrations/` and include tasks like:
+
+- Adding new or missing core tables.
+- Adding a museum category and related fields.
+- Adding a `states` table (earlier version than `apply_migration.sql`).
+- Adding an `img_url` to specific content tables.
+- Defining a `digital_ids` table for digital safety IDs.
+
+### 6.3 Using Supabase CLI (Optional)
+
+If you want to manage the schema locally with the Supabase CLI, you can:
+
+1. Install the Supabase CLI (see official Supabase docs).
+2. From `India-Tour-main/` run commands such as:
+
+```bash
+supabase start           # start local Supabase stack
+supabase db reset        # reset DB and apply migrations + seeds
+supabase db push         # push local schema to remote (use with care)
+supabase stop            # stop local Supabase stack
+```
+
+The backend uses the **remote Supabase instance** in production via `DATABASE_URL` (Session Pooler), so the CLI is mainly for local experimentation.
+
+---
+
+## 7. Local Development
+
+### 7.1 Prerequisites
 
 - Node.js (LTS)
 - Python 3.11
@@ -245,14 +306,14 @@ Configure these in **Render → Service → Environment** for the FastAPI servic
 - Supabase project & keys
 - Mapbox public access token
 
-### 6.2 Clone the Repository
+### 7.2 Clone the Repository
 
 ```bash
 git clone https://github.com/PiyushN6/india-tour-smart-tourist-safety-system.git
 cd india-tour-smart-tourist-safety-system
 ```
 
-### 6.3 Frontend Setup
+### 7.3 Frontend Setup
 
 ```bash
 cd India-Tour-main
@@ -279,7 +340,7 @@ npm run dev
 # App available at http://localhost:5173
 ```
 
-### 6.4 Backend Setup
+### 7.4 Backend Setup
 
 ```bash
 cd ../india-tour-safety-api
@@ -315,7 +376,75 @@ Now:
 
 ---
 
-## 7. Deployment
+## 8. Commands Reference
+
+This section summarizes the most important commands from `package.json` and the backend setup.
+
+### 8.1 Frontend (Vite + React)
+
+From `India-Tour-main/`:
+
+```bash
+# Start dev server
+npm run dev
+
+# Build production bundle
+npm run build
+
+# Preview built app locally
+npm run preview
+
+# Run frontend tests (Vitest + Testing Library)
+npm run test
+
+# Run ESLint over the codebase
+npm run lint
+
+# Seed helper scripts (Node-based)
+npm run seed:states   # seeds states data
+npm run seed:cities   # seeds cities data
+npm run seed:places   # seeds places data
+
+# Apply digital ID DB migration via Node script
+npm run db:migrate:digital-id
+```
+
+### 8.2 Backend (FastAPI)
+
+From `india-tour-safety-api/`:
+
+```bash
+# Create / activate virtual environment (Windows example)
+python -m venv .venv
+.\.venv\Scripts\activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Run development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests (pytest)
+pytest
+```
+
+`requirements.txt` pins the following key packages:
+
+- `fastapi==0.111.0`
+- `uvicorn[standard]==0.30.1`
+- `SQLAlchemy==2.0.30`
+- `psycopg2-binary==2.9.9`
+- `python-dotenv==1.0.1`
+- `python-jose[cryptography]==3.3.0`
+- `pydantic==2.7.0`
+- `pydantic-settings==2.2.1`
+- `pytest==8.3.3`
+
+The `tests/` directory currently contains backend tests such as `test_safety_core.py` to validate core safety logic.
+
+---
+
+## 9. Deployment
 
 ### 7.1 Backend on Render
 
@@ -361,7 +490,7 @@ Now:
 
 ---
 
-## 8. Troubleshooting
+## 10. Troubleshooting
 
 ### 8.1 CORS Errors (Netlify → Render)
 
@@ -445,32 +574,45 @@ Then restart the TypeScript server / editor.
 
 ---
 
-## 9. Repository Layout
+## 11. Repository Layout
 
 ```text
 root /
-├── India-Tour-main/          # Frontend (Vite + React + TS)
+├── India-Tour-main/                  # Frontend (Vite + React + TS)
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── services/safetyApi.ts
-│   │   ├── features/safety/SafetyMapPage.tsx
-│   │   └── new-ui/...
-│   ├── package.json
+│   │   ├── App.tsx                   # Main application shell & routes
+│   │   ├── main.tsx                  # React entry point
+│   │   ├── services/
+│   │   │   └── safetyApi.ts          # All backend API calls
+│   │   ├── features/
+│   │   │   └── safety/
+│   │   │       └── SafetyMapPage.tsx # Safety map (React Leaflet)
+│   │   └── new-ui/                   # New UI components, pages, features, types
+│   ├── supabase/
+│   │   ├── config.toml               # Supabase local dev configuration
+│   │   ├── apply_migration.sql       # Combined SQL for core schema & sample data
+│   │   ├── migrations/               # Individual SQL migrations
+│   │   └── backup_schema_*.sql       # Schema backups (if present)
+│   ├── scripts/                      # Node scripts (seeding, migrations, etc.)
+│   ├── package.json                  # Frontend dependencies & npm scripts
+│   ├── package-lock.json
 │   └── ...
-├── india-tour-safety-api/    # Backend (FastAPI)
-│   ├── app/main.py
-│   ├── requirements.txt
-│   └── .env (not committed)
+├── india-tour-safety-api/            # Backend (FastAPI)
+│   ├── app/
+│   │   └── main.py                   # FastAPI app factory, routers, CORS, health
+│   ├── requirements.txt              # Python dependencies
+│   ├── .env (not committed)          # Backend runtime env vars (local only)
+│   └── tests/                        # Backend tests (pytest)
 ├── .gitignore
-└── README.md                 # This documentation
+├── .venv/ (ignored)                  # Python virtual environment (local)
+└── README.md                         # This documentation
 ```
 
-Root‑level `package.json` and `package-lock.json` were intentionally removed; only `India-Tour-main/package*.json` are used for the frontend.
+Root‑level `package.json` and `package-lock.json` were intentionally removed in a later cleanup commit; only `India-Tour-main/package*.json` are used for the frontend Node project.
 
 ---
 
-## 10. Extending the Project
+## 12. Extending the Project
 
 - **Add new API endpoint**
   - Create a router module under `india-tour-safety-api/app/routers/`.
