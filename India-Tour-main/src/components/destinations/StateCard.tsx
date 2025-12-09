@@ -1,6 +1,7 @@
 import { MapPinIcon, StarIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
 import { Link } from 'react-router-dom';
 import { State } from '../../types';
+import ItineraryAddButton from '../ItineraryAddButton';
 
 export interface StateGroup {
   state: string;
@@ -15,9 +16,10 @@ interface StateCardProps {
   group: StateGroup;
   allStates: State[];
   onAddState: (state: State) => void;
+  onSelect?: (group: StateGroup) => void;
 }
 
-const StateCard: React.FC<StateCardProps> = ({ group, allStates, onAddState }) => {
+const StateCard: React.FC<StateCardProps> = ({ group, allStates, onAddState, onSelect }) => {
   const handleAddState = () => {
     const state = allStates.find((s) => s.name === group.state);
     if (state) {
@@ -26,7 +28,10 @@ const StateCard: React.FC<StateCardProps> = ({ group, allStates, onAddState }) =
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+    <div
+      className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl hover:border-orange-400/70 transition-all duration-300 cursor-pointer"
+      onClick={() => onSelect?.(group)}
+    >
       <div className="relative h-48 overflow-hidden">
         <img
           src={
@@ -59,7 +64,7 @@ const StateCard: React.FC<StateCardProps> = ({ group, allStates, onAddState }) =
           </div>
         </div>
       </div>
-      <div className="p-4 flex flex-col gap-2">
+      <div className="p-4 flex items-center justify-between gap-3">
         <Link
           to={`/destinations/${group.state.replace(/\s+/g, '-').toLowerCase()}`}
           className="inline-flex items-center text-orange-600 font-medium hover:text-orange-700"
@@ -67,13 +72,12 @@ const StateCard: React.FC<StateCardProps> = ({ group, allStates, onAddState }) =
           Explore {group.state}
           <ArrowRightIcon className="h-4 w-4 ml-1" />
         </Link>
-        <button
-          type="button"
-          onClick={handleAddState}
-          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-600 text-white hover:bg-orange-700"
-        >
-          Add State to Itinerary
-        </button>
+        <ItineraryAddButton
+          onAdd={handleAddState}
+          label="State added to itinerary"
+          alreadyLabel="State already in itinerary"
+          size="sm"
+        />
       </div>
     </div>
   );

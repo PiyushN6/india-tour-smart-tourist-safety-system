@@ -19,6 +19,7 @@ const SafetyAdminPage: React.FC = () => {
   const [alerts, setAlerts] = useState<SafetyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoadedAlertsOnce, setHasLoadedAlertsOnce] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
@@ -33,9 +34,42 @@ const SafetyAdminPage: React.FC = () => {
 
   const isAdmin = user?.role === 'admin';
 
-  const loadAlerts = async () => {
+  const formatAlertTimestamp = (iso: string) => {
+    if (!iso) return '';
+    const utcIso = iso.endsWith('Z') ? iso : `${iso}Z`;
+    const d = new Date(utcIso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
+    });
+  };
+
+  const formatAlertTime = (iso: string) => {
+    if (!iso) return '';
+    const utcIso = iso.endsWith('Z') ? iso : `${iso}Z`;
+    const d = new Date(utcIso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
+    });
+  };
+
+  const loadAlerts = async (options?: { silent?: boolean }) => {
     if (!session) return;
-    setIsLoading(true);
+    if (!options?.silent) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const data = await fetchAlertsAdmin(session, {
@@ -44,10 +78,13 @@ const SafetyAdminPage: React.FC = () => {
         type: typeFilter || undefined,
       });
       setAlerts(data);
+      setHasLoadedAlertsOnce(true);
     } catch (err) {
       setError(t('safety.admin.loadError'));
     } finally {
-      setIsLoading(false);
+      if (!options?.silent) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -150,24 +187,54 @@ const SafetyAdminPage: React.FC = () => {
     }
   }, [session, isAdmin, statusFilter, severityFilter, typeFilter]);
 
+  // Light polling so admin sees status changes without manual refresh
   useEffect(() => {
+    if (!session || !isAdmin) return;
+
+    const alertsInterval = window.setInterval(() => {
+      void loadAlerts({ silent: true });
+    }, 5_000);
+
+    return () => {
+      window.clearInterval(alertsInterval);
+    };
+  }, [session, isAdmin, statusFilter, severityFilter, typeFilter]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const checkHealth = async () => {
       try {
         await fetchSafetyHealth();
-        setHealthStatus('ok');
+        if (!cancelled) {
+          setHealthStatus('ok');
+        }
       } catch {
-        setHealthStatus('error');
+        if (!cancelled) {
+          setHealthStatus('error');
+        }
       }
     };
 
+    // Run once immediately
     void checkHealth();
+
+    // Then poll every ~15 seconds so System Status stays fresh
+    const healthInterval = window.setInterval(() => {
+      void checkHealth();
+    }, 15_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(healthInterval);
+    };
   }, []);
 
   const handleAcknowledge = async (alertId: number) => {
     if (!session) return;
     try {
       await acknowledgeAlert(session, alertId);
-      void loadAlerts();
+      void loadAlerts({ silent: true });
     } catch {
       setError(t('safety.admin.ackError'));
     }
@@ -177,7 +244,7 @@ const SafetyAdminPage: React.FC = () => {
     if (!session) return;
     try {
       await resolveAlert(session, alertId);
-      void loadAlerts();
+      void loadAlerts({ silent: true });
     } catch {
       setError(t('safety.admin.resolveError'));
     }
@@ -192,13 +259,8 @@ const SafetyAdminPage: React.FC = () => {
           content={t('safety.admin.subtitle')}
         />
       </Helmet>
-      <div className="min-h-[70vh] bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 py-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-slate-50">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-3">{t('safety.admin.title')}</h1>
-          <p className="text-sm sm:text-base text-slate-300 mb-6 max-w-3xl">
-            {t('safety.admin.subtitle')}
-          </p>
-
+      <div className="min-h-[60vh] py-6 sm:py-8">
+        <div className="max-w-[88rem] mx-auto px-3 sm:px-6 lg:px-8 text-slate-50">
           {!isAuthenticated && (
             <div className="mb-4 rounded-lg border border-yellow-500/40 bg-yellow-900/30 px-4 py-3 text-xs sm:text-sm text-yellow-50">
               Please sign in with an administrator account to access the safety admin dashboard.
@@ -212,8 +274,9 @@ const SafetyAdminPage: React.FC = () => {
             </div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2 rounded-2xl bg-slate-900/70 border border-slate-700/80 p-5 sm:p-6">
+          <div className="grid gap-6 lg:gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)_minmax(0,0.9fr)] items-start">
+            {/* LEFT: Live alerts */}
+            <div className="rounded-2xl bg-slate-900/80 border border-slate-700/80 p-5 sm:p-6 backdrop-blur-lg shadow-[0_22px_60px_rgba(15,23,42,0.85)]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-sm font-semibold mb-1">{t('safety.admin.liveAlerts')}</h2>
@@ -256,15 +319,18 @@ const SafetyAdminPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="h-72 rounded-xl bg-slate-950/60 border border-slate-800/80 p-3 overflow-auto">
-                {isLoading ? (
-                  <p className="text-xs text-slate-300">Loading alerts...</p>
+              <div className="rounded-xl bg-slate-950/70 border border-slate-800/80 p-3 overflow-hidden max-h-[80vh]">
+                {!hasLoadedAlertsOnce && isLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-300">
+                    <div className="h-4 w-4 border-2 border-slate-500 border-t-fuchsia-300 rounded-full animate-spin" />
+                    <span>Loading alerts...</span>
+                  </div>
                 ) : error ? (
                   <p className="text-xs text-red-300">{error}</p>
                 ) : alerts.length === 0 ? (
                   <p className="text-xs text-slate-400">{t('safety.admin.noAlerts')}</p>
                 ) : (
-                  <ul className="space-y-2 text-xs">
+                  <ul className="space-y-2 text-xs overflow-y-auto max-h-[73vh] pr-1">
                     {alerts.map((alert) => (
                       <li
                         key={alert.id}
@@ -300,8 +366,8 @@ const SafetyAdminPage: React.FC = () => {
                             <p className="text-[11px] text-slate-300 line-clamp-2">{alert.description}</p>
                           )}
                           <p className="text-[10px] text-slate-500 mt-1">
-                            Triggered: {new Date(alert.triggered_at).toLocaleString()}
-                            {alert.resolved_at && ` • Resolved: ${new Date(alert.resolved_at).toLocaleString()}`}
+                            Triggered: {formatAlertTimestamp(alert.triggered_at)}
+                            {alert.resolved_at && ` • Resolved: ${formatAlertTimestamp(alert.resolved_at)}`}
                           </p>
                         </div>
                         {isAdmin && (
@@ -339,26 +405,27 @@ const SafetyAdminPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-slate-900/70 border border-slate-700/80 p-4">
+            {/* MIDDLE: Selected alert detail */}
+            <div className="h-full">
+              <div className="h-full rounded-2xl bg-slate-900/90 border border-slate-700/80 p-4 sm:p-5 backdrop-blur-lg shadow-[0_18px_50px_rgba(15,23,42,0.8)] flex flex-col">
                 <h3 className="text-sm font-semibold mb-1">{t('safety.admin.selectedDetail')}</h3>
                 {!selectedAlert ? (
-                  <p className="text-xs text-slate-300">{t('safety.admin.selectedDetailEmpty')}</p>
+                  <p className="text-xs text-slate-300 flex-1">{t('safety.admin.selectedDetailEmpty')}</p>
                 ) : (
-                  <div className="space-y-3 text-xs text-slate-200">
+                  <div className="space-y-3 text-xs text-slate-200 flex-1">
                     <div>
                       <p className="font-semibold">{selectedAlert.title}</p>
                       {selectedAlert.description && (
                         <p className="text-slate-300 mt-0.5">{selectedAlert.description}</p>
                       )}
                       <p className="text-[10px] text-slate-400 mt-1">
-                        Type: {selectedAlert.type} • Severity: {selectedAlert.severity} • Status:{' '}
+                        Type: {selectedAlert.type} • Severity: {selectedAlert.severity} • Status{' '}
                         <span className="capitalize">{selectedAlert.status}</span>
                       </p>
                       <p className="text-[10px] text-slate-400">
-                        Triggered: {new Date(selectedAlert.triggered_at).toLocaleString()}
+                        Triggered: {formatAlertTimestamp(selectedAlert.triggered_at)}
                         {selectedAlert.resolved_at &&
-                          ` • Resolved: ${new Date(selectedAlert.resolved_at).toLocaleString()}`}
+                          ` • Resolved: ${formatAlertTimestamp(selectedAlert.resolved_at)}`}
                       </p>
                     </div>
 
@@ -457,8 +524,11 @@ const SafetyAdminPage: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="rounded-2xl bg-slate-900/70 border border-slate-700/80 p-4">
+            {/* RIGHT: System status */}
+            <div>
+              <div className="rounded-2xl bg-slate-900/80 border border-slate-700/80 p-4 backdrop-blur-lg">
                 <h3 className="text-sm font-semibold mb-1">System Status</h3>
                 <div className="flex items-center gap-2 mb-2 text-xs">
                   <span
@@ -479,8 +549,7 @@ const SafetyAdminPage: React.FC = () => {
                   <span className="text-slate-400">Safety API</span>
                 </div>
                 <p className="text-xs text-slate-300">
-                  FastAPI safety backend, Supabase auth, and alert ingestion are wired. This admin view now also
-                  surfaces anomaly alerts, tourist context, and a ready-to-copy E-FIR style summary.
+                  Quick view of safety backend uptime plus a snapshot of your latest panic dispatches.
                 </p>
                 <div className="mt-3 border-t border-slate-800/80 pt-2">
                   <p className="text-xs font-semibold text-slate-200 mb-1">Recent panic dispatches</p>
@@ -493,9 +562,7 @@ const SafetyAdminPage: React.FC = () => {
                           <span className="truncate">
                             #{a.id} {a.tourist_id_code ? `(${a.tourist_id_code})` : ''}
                           </span>
-                          <span className="text-slate-500">
-                            {new Date(a.triggered_at).toLocaleTimeString()}
-                          </span>
+                          <span className="text-slate-500">{formatAlertTime(a.triggered_at)}</span>
                         </li>
                       ))}
                     </ul>

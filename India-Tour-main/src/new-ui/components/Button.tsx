@@ -17,7 +17,7 @@ const Button: React.FC<ButtonProps> = ({
   className,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:focus-visible relative overflow-hidden group'
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:focus-visible relative overflow-hidden group'
 
   const variantClasses = {
     primary: 'bg-gradient-to-r from-primary-saffron to-primary-royal-blue text-white hover:from-primary-saffron/90 hover:to-primary-royal-blue/90 shadow-lg hover:shadow-xl button-lift',
@@ -49,7 +49,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const widthClasses = fullWidth ? 'w-full' : ''
 
-  const motionProps = {
+  const motionProps: any = {
     whileHover: disabled || loading ? {} : { scale: 1.02 },
     whileTap: disabled || loading ? {} : { scale: 0.98 },
     transition: { type: 'spring', stiffness: 400, damping: 17 }

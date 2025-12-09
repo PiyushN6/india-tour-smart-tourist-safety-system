@@ -50,6 +50,41 @@ export async function fetchMyTouristProfile(session: Session | null) {
   return res.json();
 }
 
+export async function clearItineraryBackend(userId: string) {
+  const params = new URLSearchParams({ user_id: userId });
+  const res = await fetch(`${SAFETY_API_BASE_URL}/api/itinerary/clear?${params.toString()}`, {
+    method: 'POST',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to clear itinerary: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+// ---- Itinerary persistence via safety API backend ----
+
+export interface ItinerarySavePayload {
+  user_id: string;
+  items: any[];
+  trip_note: string | null;
+}
+
+export async function saveItineraryBackend(payload: ItinerarySavePayload) {
+  const res = await fetch(`${SAFETY_API_BASE_URL}/api/itinerary/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to save itinerary: ${res.status}`);
+  }
+
+  return res.json();
+}
+
 export async function fetchRiskZones(): Promise<RiskZone[]> {
   const res = await fetch(`${SAFETY_API_BASE_URL}/api/locations/zones`, {
     method: 'GET',
@@ -217,6 +252,18 @@ export interface TouristProfilePayload {
   trip_end_date?: string | null;
   planned_cities?: string[] | null;
   accommodation_details?: string | null;
+  // New extended profile fields mirroring tourist_profiles
+  gov_id_type?: string | null;
+  gov_id_number?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  pincode?: string | null;
+  blood_group?: string | null;
+  emergency_contact_relation?: string | null;
+  digital_id_number?: string | null;
+  extra_data?: Record<string, any> | null;
 }
 
 export async function upsertTouristProfile(session: Session | null, payload: TouristProfilePayload) {

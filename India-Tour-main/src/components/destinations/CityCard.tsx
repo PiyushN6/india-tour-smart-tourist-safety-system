@@ -1,6 +1,7 @@
 import { MapPinIcon, StarIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
 import { Link } from 'react-router-dom';
 import { City } from '../../types';
+import ItineraryAddButton from '../ItineraryAddButton';
 
 export interface CityGroup {
   city: string;
@@ -31,7 +32,7 @@ const CityCard: React.FC<CityCardProps> = ({ group, allCities, onAddCity }) => {
       );
 
     if (city) {
-      onAddCity(city);
+      return onAddCity(city);
     } else {
       const fallbackCity: any = {
         id: `${normalizedGroupCity}-${normalizedGroupState}`,
@@ -39,12 +40,12 @@ const CityCard: React.FC<CityCardProps> = ({ group, allCities, onAddCity }) => {
         state: group.stateName,
         state_id: undefined,
       };
-      onAddCity(fallbackCity);
+      return onAddCity(fallbackCity);
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl hover:border-orange-400/70 transition-all duration-300">
       <div className="relative h-48 overflow-hidden">
         <img
           src={(() => {
@@ -84,7 +85,7 @@ const CityCard: React.FC<CityCardProps> = ({ group, allCities, onAddCity }) => {
           </div>
         </div>
       </div>
-      <div className="p-4 flex flex-col gap-2">
+      <div className="p-4 flex items-center justify-between gap-3">
         <Link
           to={`/destinations/${group.stateName.replace(/\s+/g, '-').toLowerCase()}/${group.city.replace(/\s+/g, '-').toLowerCase()}`}
           className="inline-flex items-center text-orange-600 font-medium hover:text-orange-700"
@@ -92,13 +93,12 @@ const CityCard: React.FC<CityCardProps> = ({ group, allCities, onAddCity }) => {
           Explore {group.city}
           <ArrowRightIcon className="h-4 w-4 ml-1" />
         </Link>
-        <button
-          type="button"
-          onClick={handleAddCity}
-          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-600 text-white hover:bg-orange-700"
-        >
-          Add City to Itinerary
-        </button>
+        <ItineraryAddButton
+          onAdd={handleAddCity}
+          label="City added to itinerary"
+          alreadyLabel="City already in itinerary"
+          size="sm"
+        />
       </div>
     </div>
   );

@@ -26,10 +26,13 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   addToFavorites: (cityId: string) => Promise<void>;
   removeFromFavorites: (cityId: string) => Promise<void>;
+  getLoginMethodForEmail: (email: string) => Promise<'google' | 'password' | null>;
+  setLoginMethodForEmail: (email: string, method: 'google' | 'password', userId?: string) => Promise<void>;
   displayName?: string;
   phoneNumber?: string | null;
 }
@@ -103,18 +106,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           created_at: profile.created_at,
           role: profile.role || 'user',
         });
-      } else if (session?.user) {
-        // No profile row yet; fall back to auth session so UI can still show basic info
+        return;
+      }
+
+      // No profile row yet; fall back to the currently authenticated user
+      const { data: authUserData, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Error getting auth user for fallback profile:', authError);
+        return;
+      }
+
+      const authUser = authUserData.user;
+      if (authUser) {
+        const meta: any = authUser.user_metadata || {};
         setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          full_name: (session.user.user_metadata as any)?.full_name || session.user.email || null,
-          avatar_url: (session.user.user_metadata as any)?.avatar_url || null,
+          id: authUser.id,
+          email: authUser.email || '',
+          full_name: meta.full_name || authUser.email || null,
+          avatar_url: (meta.picture as string | undefined) || (meta.avatar_url as string | undefined) || null,
           favoriteDestinations: [],
           travel_preferences: {},
-          phone: (session.user.user_metadata as any)?.phone || null,
+          phone: meta.phone || null,
           location: null,
-          created_at: new Date().toISOString(),
+          created_at: authUser.created_at || new Date().toISOString(),
           role: 'user',
         });
       }
@@ -122,6 +136,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error in fetchUserProfile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLoginMethodForEmail = async (email: string): Promise<'google' | 'password' | null> => {
+    if (!email) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('travel_preferences')
+        .eq('email', email)
+        .single();
+
+      if (error) {
+        if ((error as any).code === 'PGRST116') {
+          // No profile row yet for this email
+          return null;
+        }
+        console.error('Error fetching login method for email:', error);
+        return null;
+      }
+
+      const prefs: any = data?.travel_preferences || {};
+      const method = prefs.login_method;
+      if (method === 'google' || method === 'password') {
+        return method;
+      }
+      return null;
+    } catch (err) {
+      console.error('Unexpected error in getLoginMethodForEmail:', err);
+      return null;
+    }
+  };
+
+  const setLoginMethodForEmail = async (email: string, method: 'google' | 'password', userId?: string) => {
+    if (!email) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id,email,travel_preferences,created_at')
+        .eq('email', email)
+        .maybeSingle();
+
+      const existingPrefs: any = (!error && data?.travel_preferences) || {};
+
+      const now = new Date().toISOString();
+      const existingCreatedAt = (data as any)?.created_at as string | undefined;
+
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: userId, // when provided, ensures alignment with auth user id
+            email,
+            travel_preferences: {
+              ...existingPrefs,
+              login_method: method,
+            } as any,
+            updated_at: now,
+            created_at: existingCreatedAt || now,
+          },
+          { onConflict: 'id' }
+        );
+
+      if (upsertError) {
+        console.error('Error setting login method for email:', upsertError);
+      }
+    } catch (err) {
+      console.error('Unexpected error in setLoginMethodForEmail:', err);
     }
   };
 
@@ -151,6 +235,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/profile`,
+    });
+
+    return { error };
+  };
+
   const signUpWithEmail = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
       email,
@@ -169,10 +261,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error signing out:', error);
-    } else {
-      setUser(null);
-      setSession(null);
     }
+    // Always clear local auth state so the UI reflects logout
+    setUser(null);
+    setSession(null);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -207,6 +299,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateProfile({ favorite_destinations: updatedFavorites });
   };
 
+  // Enforce a single login method per email when a session becomes active
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const email = session.user.email;
+    const userId = session.user.id;
+    if (!email || !userId) return;
+
+    const provider = (session.user.app_metadata as any)?.provider as string | undefined;
+    const currentMethod: 'google' | 'password' = provider === 'google' ? 'google' : 'password';
+
+    const enforce = async () => {
+      const stored = await getLoginMethodForEmail(email);
+
+      if (!stored) {
+        // First time we see this email: lock in the current method and create profile row if needed
+        await setLoginMethodForEmail(email, currentMethod, userId);
+        return;
+      }
+
+      if (stored !== currentMethod) {
+        const message =
+          stored === 'google'
+            ? 'This India Tour account uses Google sign-in. Please use "Continue with Google" for this email.'
+            : 'This India Tour account uses email & password. Log in with your email and password, not Google.';
+
+        window.alert(message);
+        await signOut();
+      }
+    };
+
+    void enforce();
+  }, [session]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -217,10 +343,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
+        resetPassword,
         signOut,
         updateProfile,
         addToFavorites,
         removeFromFavorites,
+        getLoginMethodForEmail,
+        setLoginMethodForEmail,
         displayName:
           user?.full_name ||
           user?.email?.split('@')[0] ||

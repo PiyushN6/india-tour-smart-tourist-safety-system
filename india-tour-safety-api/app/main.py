@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .db import Base, engine
-from .routers import tourists, risk_zones, locations, incidents, alerts
+from .routers import tourists, risk_zones, locations, incidents, alerts, itinerary
 
 
 def create_app() -> FastAPI:
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(locations.router, prefix="/api")
     app.include_router(incidents.router, prefix="/api")
     app.include_router(alerts.router, prefix="/api")
+    app.include_router(itinerary.router, prefix="/api")
 
     @app.on_event("startup")
     def on_startup() -> None:  # noqa: D401

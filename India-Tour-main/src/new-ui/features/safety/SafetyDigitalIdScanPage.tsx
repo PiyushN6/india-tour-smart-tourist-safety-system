@@ -1,16 +1,16 @@
 import React from 'react'
 import Navbar from '@/components/Navbar'
-import SafetyDigitalIDPage from '../../../features/safety/SafetyDigitalIDPage'
+import SafetyDigitalIdScanPageInner from '../../../features/safety/SafetyDigitalIdScanPage'
 
-const SafetyDigitalIdPage: React.FC = () => {
+const SafetyDigitalIdScanPage: React.FC = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <SafetyDigitalIDPage />
+        <SafetyDigitalIdScanPageInner />
       </main>
     </div>
   )
 }
 
-export default SafetyDigitalIdPage
+export default SafetyDigitalIdScanPage

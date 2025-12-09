@@ -19,3 +19,4 @@ supabase/.temp/
 .env
 .env.*
 !.env.example
+.windsurf/

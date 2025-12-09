@@ -226,6 +226,7 @@ export interface ButtonProps {
   icon?: React.ReactNode
   iconPosition?: 'left' | 'right'
   fullWidth?: boolean
+  type?: 'button' | 'submit' | 'reset'
   onClick?: () => void
   className?: string
   children: React.ReactNode

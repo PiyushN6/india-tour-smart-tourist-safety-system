@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
-  Search,
   Calendar,
   Users,
   Shield,
@@ -142,15 +143,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
     setShowSuggestions(false)
   }
 
-  const getSafetyLevelColor = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'text-green-600 bg-green-50 border-green-200'
-      case 'intermediate': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'experienced': return 'text-blue-600 bg-blue-50 border-blue-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
-    }
-  }
-
   const getTravelTypeIcon = (type: string) => {
     switch (type) {
       case 'solo': return <Users className="w-4 h-4" />
@@ -273,16 +265,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
               transition={{ duration: 1, delay: 0.9 }}
             >
               <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                <Shield className="w-5 h-5 text-accent-electric-yellow" />
-                <span className="font-semibold">3.5M+</span>
-                <span className="text-sm">Safe Travels</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                <MapPin className="w-5 h-5 text-accent-electric-yellow" />
-                <span className="font-semibold">500+</span>
-                <span className="text-sm">Cities</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                 <TrendingUp className="w-5 h-5 text-accent-electric-yellow" />
                 <span className="font-semibold">99.9%</span>
                 <span className="text-sm">Uptime</span>
@@ -348,8 +330,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                     )}
                   />
                 </div>
-
-                {/* Destination Suggestions */}
                 <AnimatePresence>
                   {showSuggestions && destinationSuggestions.length > 0 && (
                     <motion.div
@@ -359,7 +339,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {destinationSuggestions.map((suggestion, index) => (
+                      {destinationSuggestions.map((suggestion) => (
                         <button
                           key={suggestion}
                           type="button"
@@ -375,7 +355,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                 </AnimatePresence>
               </motion.div>
 
-              {/* Date Range */}
+              {/* Date Range (same DatePicker configuration as Safety Digital ID form) */}
               <motion.div
                 className="mb-6 grid grid-cols-2 gap-3"
                 initial={{ opacity: 0, x: -20 }}
@@ -384,27 +364,43 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
               >
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="date"
-                    value={searchData.dates.start.toISOString().split('T')[0]}
-                    onChange={(e) => setSearchData(prev => ({
-                      ...prev,
-                      dates: { ...prev.dates, start: new Date(e.target.value) }
-                    }))}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-white/30 bg-white/95 backdrop-blur-sm focus:outline-none focus:border-primary-saffron focus:ring-2 focus:ring-primary-saffron/50"
-                  />
+                  <div className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus-within:ring-2 focus-within:ring-sky-500/80">
+                    <DatePicker
+                      selected={searchData.dates.start}
+                      onChange={(date: Date | null) =>
+                        setSearchData(prev => ({
+                          ...prev,
+                          dates: { ...prev.dates, start: date || prev.dates.start }
+                        }))
+                      }
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="DD/MM/YYYY"
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                      className="w-full bg-transparent outline-none text-sm"
+                    />
+                  </div>
                 </div>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="date"
-                    value={searchData.dates.end.toISOString().split('T')[0]}
-                    onChange={(e) => setSearchData(prev => ({
-                      ...prev,
-                      dates: { ...prev.dates, end: new Date(e.target.value) }
-                    }))}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-white/30 bg-white/95 backdrop-blur-sm focus:outline-none focus:border-primary-saffron focus:ring-2 focus:ring-primary-saffron/50"
-                  />
+                  <div className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus-within:ring-2 focus-within:ring-sky-500/80">
+                    <DatePicker
+                      selected={searchData.dates.end}
+                      onChange={(date: Date | null) =>
+                        setSearchData(prev => ({
+                          ...prev,
+                          dates: { ...prev.dates, end: date || prev.dates.end }
+                        }))
+                      }
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="DD/MM/YYYY"
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                      className="w-full bg-transparent outline-none text-sm"
+                    />
+                  </div>
                 </div>
               </motion.div>
 
@@ -505,10 +501,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                 <div className="flex items-center space-x-1">
                   <Clock className="w-3 h-3 text-yellow-400" />
                   <span>24/7 Support</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-3 h-3 text-accent-electric-yellow" />
-                  <span>4.9★ Rating</span>
                 </div>
               </motion.div>
             </motion.form>

@@ -18,6 +18,7 @@ export type DigitalIDData = {
   emergency_contact_relation: string;
   emergency_contact_phone: string;
   digital_id_number: string;
+  extra_data?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
 };

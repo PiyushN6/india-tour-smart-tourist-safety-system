@@ -25,7 +25,7 @@ const en: Messages = {
   'safety.dashboard.title': 'Tourist Safety Dashboard',
   'safety.dashboard.recentAlerts': 'Recent alerts',
   'safety.dashboard.recentAlertsHelp':
-    'When the safety service is online, you will see your latest panic and anomaly alerts here.',
+    'Here you will see your latest panic and anomaly alerts, listed in real time.',
   'safety.dashboard.panicTitle': 'Panic Button',
   'safety.dashboard.panicHelp':
     'Press this button if you feel unsafe. We will send an alert using your safety profile and, when possible, your current location.',
@@ -83,10 +83,10 @@ const hi: Messages = {
   'safety.dashboard.title': 'पर्यटक सुरक्षा डैशबोर्ड',
   'safety.dashboard.recentAlerts': 'हाल की सूचनाएँ',
   'safety.dashboard.recentAlertsHelp':
-    'जब सुरक्षा सेवा ऑनलाइन होगी तो यहाँ आपके नवीनतम पैनिक और एनोमली अलर्ट दिखाई देंगे।',
+    'यहाँ आपके नवीनतम पैनिक और एनोमली अलर्ट वास्तविक समय में दिखाई देंगे।',
   'safety.dashboard.panicTitle': 'पैनिक बटन',
   'safety.dashboard.panicHelp':
-    'जब भी आप असुरक्षित महसूस करें तो यह बटन दबाएँ। सिस्टम आपकी सेफ़्टी प्रोफाइल और उपलब्ध होने पर वर्तमान लोकेशन के साथ अलर्ट भेजेगा।',
+    'जब भी आप असुरक्षित महसूस करें, यह बटन दबाएँ। सिस्टम आपकी सेफ़्टी प्रोफाइल और उपलब्ध होने पर वर्तमान लोकेशन के साथ अलर्ट भेजेगा।',
   'safety.dashboard.panicButton': 'पैनिक अलर्ट भेजें',
   'safety.dashboard.trackingLabel': 'सुरक्षा निगरानी के लिए मेरी लाइव लोकेशन साझा करें',
   'safety.dashboard.safetyStatus': 'सुरक्षा स्थिति',

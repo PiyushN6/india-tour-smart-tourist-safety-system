@@ -109,14 +109,18 @@ def get_my_safety_score(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
-    """Compute a simple safety score for the current tourist.
+    """Compute a heuristic safety score for the current tourist.
 
-    This uses a heuristic based on recent alerts:
+    High level model:
     - Start from 100 points.
-    - Subtract 20 for each critical alert in the last 7 days.
-    - Subtract 10 for each high alert in the last 7 days.
-    - Subtract 5 for each medium/low alert in the last 7 days.
-    - Clamp between 0 and 100.
+    - Look back over the last 14 days of alerts.
+    - Newer alerts have more impact than older ones (time decay).
+    - Critical / panic events hurt more than low‑severity anomalies.
+    - Resolved alerts still count, but with a smaller weight than unresolved ones.
+    - If there is an unresolved critical panic in the last 24h, clamp to a lower
+      ceiling to avoid showing a misleadingly high score.
+    - If there have been no alerts for several days, allow gradual recovery back
+      toward a high score.
     The result is stored on the tourist profile and returned as JSON.
     """
 
@@ -167,7 +171,10 @@ def get_my_safety_score(
         elif alert.type == "geofence_breach":
             geo_factor = 1.2
 
-        penalty = base_penalty * decay * geo_factor
+        # Resolved incidents still affect the score but a bit less than active ones.
+        resolution_factor = 0.7 if alert.status == "resolved" else 1.0
+
+        penalty = base_penalty * decay * geo_factor * resolution_factor
         score -= penalty
 
     # If there is any unresolved critical panic in last 24h, clamp to a lower ceiling.
@@ -184,6 +191,22 @@ def get_my_safety_score(
     )
     if recent_critical_panic is not None:
         score = min(score, 40.0)
+
+    # Gentle recovery: if there have been no alerts at all in the last 3 days,
+    # nudge the score upwards toward a "safe" band.
+    quiet_window_start = now - timedelta(days=3)
+    has_recent_incident = (
+        db.query(models.SafetyAlert)
+        .filter(
+            models.SafetyAlert.tourist_profile_id == profile.id,
+            models.SafetyAlert.triggered_at >= quiet_window_start,
+        )
+        .first()
+        is not None
+    )
+
+    if not has_recent_incident and score < 90.0:
+        score = min(90.0, score + 10.0)
 
     score = max(0.0, min(100.0, score))
 

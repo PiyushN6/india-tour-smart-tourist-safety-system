@@ -33,15 +33,34 @@ class TouristProfile(Base):
     id_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     id_number: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
 
+    # Additional identity / document fields (from previous digital_ids table)
+    gov_id_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    gov_id_number: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+
     phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     emergency_contact_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     emergency_contact_phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
+    # Address details
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    pincode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+
+    # Health / emergency extras
+    blood_group: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    emergency_contact_relation: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
     trip_start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     trip_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     planned_cities: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
     accommodation_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Stable digital ID code mirror and extra metadata for the card
+    digital_id_number: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    extra_data: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     safety_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -124,3 +143,21 @@ class SafetyAlert(Base):
     extra_data: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
 
     tourist_profile: Mapped[Optional[TouristProfile]] = relationship(back_populates="alerts")
+
+
+class UserItinerary(Base):
+    """Backend mirror of the Supabase user_itineraries_v2 table.
+
+    This keeps the primary key as user_id so each user has a single itinerary row.
+    """
+
+    __tablename__ = "user_itineraries_v2"
+
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
+    items: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
+    trip_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )

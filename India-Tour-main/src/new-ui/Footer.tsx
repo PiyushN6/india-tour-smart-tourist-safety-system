@@ -18,7 +18,8 @@ import {
   User,
   BookOpen,
   Camera,
-  Star
+  Star,
+  Check
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import Button from './Button'
@@ -42,6 +43,8 @@ interface FooterLink {
 }
 
 const Footer: React.FC = () => {
+  const [subscribed, setSubscribed] = React.useState(false)
+
   const mainSections: FooterSection[] = [
     {
       title: 'Explore',
@@ -226,19 +229,48 @@ const Footer: React.FC = () => {
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Get the latest travel safety alerts, destination updates, and exclusive safety tips delivered to your inbox.
           </p>
-          <form className="flex flex-col sm:flex-row max-w-md mx-auto space-y-3 sm:space-y-0 sm:space-x-3">
+          <form
+            className="flex flex-col sm:flex-row max-w-md mx-auto space-y-3 sm:space-y-0 sm:space-x-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const form = e.currentTarget
+              const emailInput = form.elements.namedItem('newsletter-email') as HTMLInputElement | null
+              const email = emailInput?.value.trim() || ''
+
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+              if (!emailRegex.test(email)) {
+                alert('Please write a valid email address.')
+                return
+              }
+
+              // Valid email: show a temporary visual success state on the button
+              setSubscribed(true)
+              setTimeout(() => setSubscribed(false), 2500)
+              form.reset()
+            }}
+          >
             <input
               type="email"
+              name="newsletter-email"
               placeholder="Enter your email address"
               className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-saffron/50 focus:border-primary-saffron transition-all duration-200"
             />
-            <Button
+            <button
               type="submit"
-              className="w-full sm:w-auto"
-              icon={<Mail className="w-4 h-4" />}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 rounded-xl border border-gray-300 bg-white/70 bg-clip-padding backdrop-blur-md text-sm font-medium transition-all duration-200 gap-2.5 "
             >
-              Subscribe
-            </Button>
+              {subscribed ? (
+                <>
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-green-700">Subscribed</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  <span className="text-gray-900">Subscribe</span>
+                </>
+              )}
+            </button>
           </form>
         </motion.div>
 
@@ -278,10 +310,10 @@ const Footer: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               viewport={{ once: true }}
-              className="space-y-4"
+              className="space-y-4 text-right md:col-start-3"
             >
               <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Follow Us</h4>
-              <div className="flex space-x-4">
+              <div className="flex space-x-4 justify-end">
                 {socialLinks.map((social) => (
                   <a
                     key={social.name}
@@ -297,34 +329,7 @@ const Footer: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* App Download */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Mobile App</h4>
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  size="small"
-                  className="flex-1"
-                  icon={<Camera className="w-4 h-4" />}
-                >
-                  App Store
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  className="flex-1"
-                  icon={<Star className="w-4 h-4" />}
-                >
-                  Google Play
-                </Button>
-              </div>
-            </motion.div>
+            {/* App Download block removed for now */}
           </div>
 
           {/* Copyright */}
@@ -337,10 +342,7 @@ const Footer: React.FC = () => {
           >
             <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>© 2025 India Tour Smart Safety System.</span>
-                <span>Made with</span>
-                <Heart className="w-4 h-4 text-red-500 fill-current" />
-                <span>for safe travels in India.</span>
+                <span>Copyright © 2025 India Tour Smart Safety System All rights reserved.</span>
               </div>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span>Emergency available 24/7</span>
@@ -352,19 +354,7 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Safety Badge */}
-      <div className="fixed bottom-8 left-8 z-40 hidden lg:block">
-        <motion.div
-          className="glass-card p-3 flex items-center space-x-2"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 1, type: 'spring' }}
-        >
-          <Shield className="w-5 h-5 text-green-600" />
-          <span className="text-sm font-medium text-gray-700">Verified Safe</span>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        </motion.div>
-      </div>
+      {/* Floating Safety Badge removed for now */}
     </footer>
   )
 }

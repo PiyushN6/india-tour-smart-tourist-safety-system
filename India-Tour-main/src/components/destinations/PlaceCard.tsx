@@ -1,5 +1,7 @@
 import { MapPinIcon, StarIcon } from '@heroicons/react/24/solid';
 import { Place } from '../../types';
+import Card from '../../new-ui/components/Card';
+import ItineraryAddButton from '../ItineraryAddButton';
 
 interface PlaceCardProps {
   place: Place;
@@ -11,7 +13,12 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, cityLabel, onAddToItinerar
   const effectiveCityLabel = cityLabel || (place.city as any)?.name || '';
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+    <Card
+      variant="interactive"
+      hover
+      padding="none"
+      className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl hover:border-orange-400/70 flex flex-col"
+    >
       <div className="h-40 bg-gray-100 overflow-hidden">
         <img
           src={(place as any).image_url || (place as any).imageUrl || '/images/placeholder.jpg'}
@@ -41,16 +48,16 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, cityLabel, onAddToItinerar
             <MapPinIcon className="h-4 w-4 mr-1" />
             <span>{effectiveCityLabel}</span>
           </div>
-          <button
-            onClick={() => onAddToItinerary(place)}
-            className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700"
-          >
-            Add to Itinerary
-          </button>
+          <ItineraryAddButton
+            onAdd={() => onAddToItinerary(place)}
+            label="Place added to itinerary"
+            alreadyLabel="Place already in itinerary"
+            size="sm"
+          />
         </div>
       </div>
-    </div>
+    </Card>
   );
-};
+}
 
 export default PlaceCard;

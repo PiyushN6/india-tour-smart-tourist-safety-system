@@ -58,6 +58,7 @@ type DataContextType = ExternalDataContextType & {
   // Ensure all methods we actually implement are required here
   fetchPlaces: () => Promise<void>;
   fetchCities: () => Promise<void>;
+  fetchCitiesWithDetails: () => Promise<City[]>;
   fetchStates: () => Promise<void>;
   fetchCitiesByState: (stateName: string) => Promise<City[]>;
   searchPlaces: (query: string) => Promise<Place[]>;
@@ -309,6 +310,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setState(prev => ({ ...prev, citiesLoading: true, citiesError: null }));
       
+      // Keep this query intentionally simple so it doesn't fail if related tables/relations
+      // like local_specialties or events are missing or misconfigured.
+      const { data: cities, error } = await supabase
+        .from('cities')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      setState(prev => ({ 
+        ...prev, 
+        cities: cities || [], 
+        citiesLoading: false 
+      }));
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch cities');
+      // Log both the wrapped error and the raw Supabase error object for easier debugging
+      console.error('Error fetching cities (wrapped):', error);
+      console.error('Error fetching cities (raw):', err);
+      setState(prev => ({ 
+        ...prev, 
+        citiesError: error, 
+        citiesLoading: false 
+      }));
+    }
+  }, []);
+
+  // Optional, richer loader: fetch cities together with nested relations.
+  // This is kept separate from fetchCities so normal pages use the simpler,
+  // more reliable query, and only detail-heavy views opt in when needed.
+  const fetchCitiesWithDetails = useCallback(async (): Promise<City[]> => {
+    try {
+      setState(prev => ({ ...prev, citiesLoading: true, citiesError: null }));
+
       const { data: cities, error } = await supabase
         .from('cities')
         .select(`
@@ -322,19 +357,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      setState(prev => ({ 
-        ...prev, 
-        cities: cities || [], 
-        citiesLoading: false 
+      const typed = (cities || []) as City[];
+
+      // Optionally hydrate the main cities array with the richer data
+      setState(prev => ({
+        ...prev,
+        cities: typed,
+        citiesLoading: false,
       }));
+
+      return typed;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch cities');
-      setState(prev => ({ 
-        ...prev, 
-        citiesError: error, 
-        citiesLoading: false 
+      const error = err instanceof Error ? err : new Error('Failed to fetch detailed cities');
+      console.error('Error fetching detailed cities (wrapped):', error);
+      console.error('Error fetching detailed cities (raw):', err);
+      setState(prev => ({
+        ...prev,
+        citiesError: error,
+        citiesLoading: false,
       }));
-      console.error('Error fetching cities:', error);
+      throw error;
     }
   }, []);
 
@@ -421,15 +463,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setState(prev => ({ ...prev, citiesLoading: true }));
       
+      // Use a minimal projection here as well to avoid query failures due to joins
       const { data: cities, error } = await supabase
         .from('cities')
-        .select(`
-          *,
-          places(*),
-          local_specialties(*),
-          events(*),
-          transport_options(*)
-        `)
+        .select('*')
         .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
         .order('name', { ascending: true });
       
@@ -579,6 +616,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Data fetching methods
     fetchPlaces,
     fetchCities,
+    fetchCitiesWithDetails,
     fetchStates,
     fetchCitiesByState,
     

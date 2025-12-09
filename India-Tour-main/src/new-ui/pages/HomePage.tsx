@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Shield, MapPin, Star, TrendingUp, Users, AlertTriangle, Heart, Sparkles, Globe, Zap } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Shield, MapPin, Star, TrendingUp, Users, AlertTriangle, Heart, Sparkles, Zap } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { SearchData } from '@/types'
 import HeroSection from '@/components/HeroSection'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
 import { useData } from '../../context/DataContext'
 import { useItinerary } from '../../context/ItineraryContext'
+import ItineraryAddButton from '../../components/ItineraryAddButton'
+import { handleEmergencySOS } from '@/utils/emergency'
 
 const HomePage: React.FC = () => {
   const { states, fetchStates } = useData()
   const { addState } = useItinerary()
+  const navigate = useNavigate()
+
+  const scrollToTop = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   const [featuredDestinations, setFeaturedDestinations] = useState<{
     id: string
@@ -44,87 +51,88 @@ const HomePage: React.FC = () => {
     loadStates()
   }, [fetchStates])
 
-  // Derive featured destinations from the first few states
+  // Derive featured destinations from states, rotating randomly every few seconds
   useEffect(() => {
     if (!states || states.length === 0) return
 
-    const topStates = states.slice(0, 3)
+    const pickRandomStates = () => {
+      const pool = [...states]
+      // Shuffle pool and take first 3
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[pool[i], pool[j]] = [pool[j], pool[i]]
+      }
+      const sample = pool.slice(0, Math.min(3, pool.length))
 
-    const mapped = topStates.map((state: any) => ({
-      id: state.id,
-      name: state.name,
-      stateLabel: state.region || 'India',
-      description:
-        state.description || `Explore the beautiful state of ${state.name} with its rich cultural heritage and stunning attractions.`,
-      // Until we have a real safety field on state, use a neutral high score
-      safetyScore: 90,
-      imageUrl:
-        state.image_url || `https://source.unsplash.com/random/800x600/?${encodeURIComponent(state.name)},india`,
-      bestTime: 'Year-round',
-      highlights: ['Cultural', 'Scenic', 'Popular'],
-    }))
+      const mapped = sample.map((state: any) => ({
+        id: state.id,
+        name: state.name,
+        stateLabel: state.region || 'India',
+        description:
+          state.description || `Explore the beautiful state of ${state.name} with its rich cultural heritage and stunning attractions.`,
+        // Neutral placeholder score until a real safety metric exists
+        safetyScore: 90,
+        imageUrl:
+          state.image_url || `https://source.unsplash.com/random/800x600/?${encodeURIComponent(state.name)},india`,
+        bestTime: 'Year-round',
+        highlights: ['Cultural', 'Scenic', 'Popular'],
+      }))
 
-    setFeaturedDestinations(mapped)
+      setFeaturedDestinations(mapped)
+    }
+
+    pickRandomStates()
+    const interval = setInterval(pickRandomStates, 20000) // rotate every 20 seconds
+
+    return () => clearInterval(interval)
   }, [states])
 
-  // Safety statistics
-  const safetyStats = [
+  // Unified safety overview blocks (merged content from the two previous sections)
+  const safetyOverviewBlocks = [
     {
-      icon: <Users className="w-6 h-6" />,
-      value: "3.5M+",
-      label: "Safe Travels",
-      description: "Tourists protected nationwide",
-      color: "text-primary-royal-blue"
+      icon: <Users className="w-8 h-8" />,
+      title: "Designed for your journey",
+      subtitle: "Solo, family, first‑time",
+      body: "Whether you are backpacking, visiting relatives, or planning a once‑in‑a‑lifetime trip, India Tour adapts to how you actually travel.",
+      bullets: [
+        "Plan by state, city, and specific places",
+        "Balance discovery with peace of mind",
+        "Useful for weekend breaks and long routes",
+      ],
     },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      value: "99.9%",
-      label: "Uptime",
-      description: "System reliability",
-      color: "text-primary-emerald"
-    },
-    {
-      icon: <Star className="w-6 h-6" />,
-      value: "4.9★",
-      label: "Rating",
-      description: "User satisfaction",
-      color: "text-accent-electric-yellow"
-    },
-    {
-      icon: <Globe className="w-6 h-6" />,
-      value: "500+",
-      label: "Cities",
-      description: "Coverage across India",
-      color: "text-accent-coral-pink"
-    }
-  ]
-
-  // Key features
-  const keyFeatures = [
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "AI-Powered Safety",
-      description: "Real-time safety scoring and emergency assistance powered by artificial intelligence",
-      highlights: ["Live Safety Score", "Emergency SOS", "Risk Alerts"]
+      title: "Safety decisions made simple",
+      subtitle: "Clear signals, not fear",
+      body: "See at a glance which areas feel comfortable, which need caution, and why in language a traveler can actually use.",
+      bullets: [
+        "AI‑assisted area safety scores",
+        "Safe‑feeling vs. caution‑zone neighborhoods",
+        "Plain‑English context behind each rating",
+      ],
     },
     {
       icon: <MapPin className="w-8 h-8" />,
-      title: "Interactive Maps",
-      description: "Detailed safety maps with real-time updates and nearby services",
-      highlights: ["Safety Zones", "Emergency Services", "Route Planning"]
-    },
-    {
-      icon: <Heart className="w-8 h-8" />,
-      title: "24/7 Support",
-      description: "Round-the-clock assistance and emergency response coordination",
-      highlights: ["Live Chat Support", "Emergency Contacts", "Medical Assistance"]
+      title: "Maps with local instincts",
+      subtitle: "Human + AI guidance",
+      body: "Move through Indian cities with maps that highlight not just streets, but safety, services, and how the area feels.",
+      bullets: [
+        "Safety heatmaps for each locality",
+        "Police, hospitals, and help centers nearby",
+        "Routes tuned for comfort, not just speed",
+      ],
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: "Smart Alerts",
-      description: "Instant notifications about safety concerns and travel advisories",
-      highlights: ["Weather Alerts", "Security Updates", "Health Advisories"]
-    }
+      title: "24/7 safety companion",
+      subtitle: "Quiet until it matters",
+      body: "India Tour stays in the background while you explore, stepping forward only when something could impact your plans.",
+      bullets: [
+        "Weather, health, and security alerts",
+        "One‑tap access to emergency contacts",
+        "Designed to work with local advice and common sense",
+      ],
+    },
   ]
 
   // Trust indicators
@@ -132,46 +140,31 @@ const HomePage: React.FC = () => {
     {
       icon: <AlertTriangle className="w-5 h-5" />,
       title: "Emergency Ready",
-      description: "Quick access to emergency services and support"
+      description: "Quick access to emergency services and support",
     },
     {
       icon: <Users className="w-5 h-5" />,
       title: "Community Verified",
-      description: "Safety information verified by local communities"
+      description: "Safety information verified by local communities",
     },
     {
       icon: <TrendingUp className="w-5 h-5" />,
       title: "Real-time Updates",
-      description: "Live safety scores and risk assessments"
+      description: "Live safety scores and risk assessments",
     },
     {
       icon: <Shield className="w-5 h-5" />,
-      title: "Government Certified",
-      description: "Official tourism safety partner certification"
-    }
+      title: "Transparent Sources",
+      description: "Clear about where safety data comes from and how it is used",
+    },
   ]
-
-  const getSafetyScoreColor = (score: number) => {
-    if (score >= 90) return "safety-high"
-    if (score >= 70) return "safety-medium"
-    return "safety-low"
-  }
-
-  const getSafetyScoreLabel = (score: number) => {
-    if (score >= 90) return "Very Safe"
-    if (score >= 70) return "Moderately Safe"
-    return "Caution Advised"
-  }
 
   return (
     <div className="min-h-screen">
-      {/* Navigation */}
-      <Navbar />
+      {/* Hero Section - uses internal navigation when Explore Safely is submitted */}
+      <HeroSection />
 
-      {/* Hero Section */}
-      <HeroSection onSearch={handleSearch} />
-
-      {/* Safety Statistics Section */}
+      {/* Integrated Safety Overview Section (stats + features) */}
       <section className="py-16 lg:py-24 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
@@ -189,20 +182,20 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-center space-x-3 mb-6">
               <Sparkles className="w-6 h-6 text-accent-electric-yellow animate-pulse" />
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold gradient-text-2025">
-                Trusted by Millions
+                Safety First Travel Experience
               </h2>
               <Sparkles className="w-6 h-6 text-accent-electric-yellow animate-pulse" />
             </div>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Join millions of travelers exploring India safely with our comprehensive safety platform
+              Advanced safety features powered by AI and built around real Indian cities and states, so you can explore with more confidence and clarity.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {safetyStats.map((stat, index) => (
+            {safetyOverviewBlocks.map((block, index) => (
               <motion.div
-                key={index}
-                className="text-center"
+                key={block.title}
+                className="h-full"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -212,26 +205,20 @@ const HomePage: React.FC = () => {
                   variant="glass"
                   hover={true}
                   padding="large"
-                  className="h-full text-center group"
+                  className="h-full text-center card-hover-2025"
                 >
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${stat.color}`}>
-                    {stat.icon}
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-saffron/20 to-primary-royal-blue/20 flex items-center justify-center text-primary-saffron">
+                    {block.icon}
                   </div>
-                  <motion.div
-                    className="text-3xl font-bold text-gray-900 mb-2"
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 200, delay: index * 0.1 + 0.3 }}
-                  >
-                    {stat.value}
-                  </motion.div>
-                  <div className="text-lg font-semibold text-gray-800 mb-2">
-                    {stat.label}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {stat.description}
-                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    {block.title}
+                  </h3>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    {block.subtitle}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {block.body}
+                  </p>
                 </Card>
               </motion.div>
             ))}
@@ -250,10 +237,10 @@ const HomePage: React.FC = () => {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Popular <span className="gradient-text-2025">Safe Destinations</span>
+              Featured <span className="gradient-text-2025">States & Regions</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover India's most beloved destinations, all verified for your safety and comfort
+              A few real states pulled from the current India Tour database to give you a taste of where you can go next
             </p>
           </motion.div>
 
@@ -271,7 +258,7 @@ const HomePage: React.FC = () => {
                   variant="interactive"
                   hover={true}
                   padding="none"
-                  className="h-full overflow-hidden card-hover-2025"
+                  className="h-full overflow-hidden card-hover-2025 border border-white/50 bg-white/80 backdrop-blur-sm shadow-lg"
                 >
                   <div className="relative">
                     {/* Destination Image */}
@@ -281,25 +268,14 @@ const HomePage: React.FC = () => {
                         alt={destination.name}
                         className="w-full h-full object-cover opacity-80"
                         onError={(e) => {
-                          // Fallback for missing images
-                          e.currentTarget.style.display = 'none'
+                          // Fallback for missing or broken images: swap to a generic India travel photo
+                          e.currentTarget.onerror = null
+                          e.currentTarget.src = 'https://source.unsplash.com/random/800x600/?india,travel'
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                      {/* Safety Badge */}
-                      <div className="absolute top-4 right-4">
-                        <div className={`safety-indicator ${getSafetyScoreColor(destination.safetyScore)}`}>
-                          {destination.safetyScore}/100
-                        </div>
-                      </div>
-
-                      {/* Best Time Badge */}
-                      <div className="absolute bottom-4 left-4 glass-card px-3 py-1 rounded-full">
-                        <span className="text-white text-sm font-medium">
-                          {destination.bestTime}
-                        </span>
-                      </div>
+                      {/* Safety badge and best-time badge removed for now to avoid fake data */}
                     </div>
 
                     {/* Content */}
@@ -312,39 +288,7 @@ const HomePage: React.FC = () => {
                         {destination.description}
                       </p>
 
-                      {/* Safety Score */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">Safety Level</span>
-                          <span className={`text-sm font-bold ${getSafetyScoreColor(destination.safetyScore).replace('safety-', 'text-safety-')}`}>
-                            {getSafetyScoreLabel(destination.safetyScore)}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <motion.div
-                            className={`h-2 rounded-full ${
-                              destination.safetyScore >= 90 ? 'bg-safety-green' :
-                              destination.safetyScore >= 70 ? 'bg-safety-yellow' : 'bg-safety-red'
-                            }`}
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${destination.safetyScore}%` }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1, delay: 0.5 }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Highlights */}
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {destination.highlights.map((highlight, i) => (
-                          <span
-                            key={i}
-                            className="px-3 py-1 bg-primary-saffron/10 text-primary-saffron text-xs rounded-full font-medium"
-                          >
-                            {highlight}
-                          </span>
-                        ))}
-                      </div>
+                      {/* Highlights removed to keep this section concise for now */}
 
                       {/* CTAs */}
                       <div className="flex flex-col sm:flex-row gap-3">
@@ -355,26 +299,24 @@ const HomePage: React.FC = () => {
                           <Button
                             variant="primary"
                             size="medium"
-                            icon={<ArrowRight className="w-4 h-4" />}
-                            className="w-full"
+                            className="w-full text-gray-900"
                           >
-                            Explore Destination
+                            Explore destination
                           </Button>
                         </Link>
 
-                        <Button
-                          variant="outline"
-                          size="medium"
-                          className="sm:w-auto"
-                          onClick={() => {
-                            const fullState = (states as any[] | undefined)?.find((s) => s.id === destination.id)
-                            if (fullState) {
-                              addState(fullState)
-                            }
-                          }}
-                        >
-                          Add to Itinerary
-                        </Button>
+                        <div className="sm:w-auto flex items-center justify-end">
+                          <ItineraryAddButton
+                            onAdd={() => {
+                              const fullState = (states as any[] | undefined)?.find((s) => s.id === destination.id)
+                              if (!fullState) return false
+                              return addState(fullState as any)
+                            }}
+                            label="State added to itinerary"
+                            alreadyLabel="State already in itinerary"
+                            size="md"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -391,74 +333,16 @@ const HomePage: React.FC = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <Button
-              variant="outline"
-              size="large"
-              icon={<MapPin className="w-5 h-5" />}
-              className="group"
-            >
-              View All Destinations
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Key Features Section */}
-      <section className="py-16 lg:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              <span className="gradient-text-2025">Safety First</span> Travel Experience
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Advanced safety features powered by AI, designed specifically for travelers exploring India
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {keyFeatures.map((feature, index) => (
-              <motion.div
-                key={index}
-                className="h-full"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+            <Link to="/destinations" className="inline-block">
+              <Button
+                variant="outline"
+                size="large"
+                className="group"
               >
-                <Card
-                  variant="glass"
-                  hover={true}
-                  padding="large"
-                  className="h-full text-center card-hover-2025"
-                >
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary-saffron/20 to-primary-royal-blue/20 flex items-center justify-center text-primary-saffron group-hover:scale-110 transition-transform duration-300">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    {feature.description}
-                  </p>
-                  <div className="space-y-2">
-                    {feature.highlights.map((highlight, i) => (
-                      <div key={i} className="flex items-center space-x-2 text-sm text-gray-700">
-                        <div className="w-1.5 h-1.5 bg-primary-saffron rounded-full" />
-                        <span>{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                Explore all destinations
+              </Button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -525,7 +409,8 @@ const HomePage: React.FC = () => {
                   variant="danger"
                   size="large"
                   icon={<AlertTriangle className="w-5 h-5" />}
-                  className="pulse-red"
+                  className="pulse-red text-gray-900"
+                  onClick={() => handleEmergencySOS(navigate)}
                 >
                   Emergency SOS
                 </Button>
@@ -533,6 +418,7 @@ const HomePage: React.FC = () => {
                   variant="outline"
                   size="large"
                   icon={<Shield className="w-5 h-5" />}
+                  onClick={() => navigate('/safety/dashboard')}
                 >
                   Safety Dashboard
                 </Button>
@@ -565,31 +451,16 @@ const HomePage: React.FC = () => {
                   size="xlarge"
                   icon={<Sparkles className="w-6 h-6" />}
                   className="bg-gradient-to-r from-accent-electric-yellow to-accent-coral-pink text-black font-bold"
+                  onClick={scrollToTop}
                 >
                   Start Safe Journey
                 </Button>
-                <div className="flex items-center space-x-6 text-sm text-gray-600">
-                  <div className="flex items-center space-x-1">
-                    <Shield className="w-4 h-4 text-green-600" />
-                    <span>100% Free</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Heart className="w-4 h-4 text-red-500" />
-                    <span>Trusted by 3.5M+</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-accent-electric-yellow" />
-                    <span>4.9★ Rating</span>
-                  </div>
-                </div>
               </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <Footer />
     </div>
   )
 }

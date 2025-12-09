@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,13 +23,22 @@ const pageVariants = {
   exit: { opacity: 0, y: -20 }
 }
 
-const pageTransition = {
+const pageTransition: any = {
   type: 'tween',
   ease: 'anticipate',
-  duration: 0.4
+  duration: 0.4,
 }
 
 const App: React.FC = () => {
+  // Only show the big global loader the first time the app bootstraps.
+  const [hasShownInitialLoader, setHasShownInitialLoader] = useState(false)
+
+  useEffect(() => {
+    if (!hasShownInitialLoader) {
+      setHasShownInitialLoader(true)
+    }
+  }, [hasShownInitialLoader])
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background-warm-offwhite">
@@ -48,7 +57,7 @@ const App: React.FC = () => {
 
         <main className="flex-grow">
           <AnimatePresence mode="wait">
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense fallback={hasShownInitialLoader ? null : <LoadingScreen />}>
               <Routes>
                 <Route path="/" element={
                   <motion.div
@@ -71,18 +80,6 @@ const App: React.FC = () => {
                     transition={pageTransition}
                   >
                     <SafetyDashboard />
-                  </motion.div>
-                } />
-
-                <Route path="/safety/map" element={
-                  <motion.div
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <SafetyMap />
                   </motion.div>
                 } />
 

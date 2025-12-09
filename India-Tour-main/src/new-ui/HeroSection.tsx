@@ -506,10 +506,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   <Clock className="w-3 h-3 text-yellow-400" />
                   <span>24/7 Support</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-3 h-3 text-accent-electric-yellow" />
-                  <span>4.9★ Rating</span>
-                </div>
               </motion.div>
             </motion.form>
           </motion.div>
