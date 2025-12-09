@@ -5,6 +5,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import StateDetailPage from './features/destinations/StateDetailPage';
 import CityDetailPage from './features/destinations/CityDetailPage';
 import Navbar from './new-ui/components/Navbar';
+import Chatbot from './new-ui/components/Chatbot';
 import Footer from './new-ui/Footer';
 import HomePage from './new-ui/pages/HomePage';
 import CityOverviewPage from './pages/CityOverviewPage';
@@ -54,13 +55,16 @@ function AppContent() {
   // first load / hard refresh, not when clicking links like /destinations.
   if (bootSplash || authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin animation-delay-150 mx-auto"></div>
+            <div className="w-16 h-16 border-4 border-orange-100 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-orange-100 border-t-orange-400 rounded-full animate-spin animation-delay-150 mx-auto"></div>
           </div>
-          <h2 className="text-2xl font-bold text-orange-600 mb-2">India Tour</h2>
+          <h2 className="text-2xl font-bold text-orange-600 mb-2">
+            <span className="block">India Tour</span>
+            <span className="block text-base text-gray-800">Smart Tourism Safety System</span>
+          </h2>
           <p className="text-gray-600">Discovering Incredible India...</p>
         </div>
       </div>
@@ -113,6 +117,8 @@ function AppContent() {
               </Routes>
             </main>
             <Footer />
+            {/* Global AI Safety Assistant (floating button + sidebar) */}
+            <Chatbot />
           </div>
             </Router>
             <Analytics />

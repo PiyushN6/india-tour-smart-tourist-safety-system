@@ -43,28 +43,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
   const formRef = useRef<HTMLFormElement>(null)
 
   // Background images for parallax effect
-  const heroImages = [
-    {
-      url: '/images/hero-taj-mahal.jpg',
-      title: 'Taj Mahal, Agra',
-      description: 'Symbol of Eternal Love'
-    },
-    {
-      url: '/images/hero-kerala-backwaters.jpg',
-      title: 'Kerala Backwaters',
-      description: 'Serene Southern Beauty'
-    },
-    {
-      url: '/images/hero-rajasthan-palace.jpg',
-      title: 'Rajasthan Palaces',
-      description: 'Royal Heritage'
-    },
-    {
-      url: '/images/hero-himalayan-peaks.jpg',
-      title: 'Himalayan Peaks',
-      description: 'Majestic Northern Heights'
-    }
-  ]
+  // Uses all hero-XX.jpg files placed in public/images/hero-backgrounds
+  const HERO_IMAGE_COUNT = 28
+
+  const heroImages = React.useMemo(
+    () =>
+      Array.from({ length: HERO_IMAGE_COUNT }, (_, index) => ({
+        url: `/images/hero-backgrounds/hero-${String(index + 1).padStart(2, '0')}.jpg`,
+        title: '',
+        description: ''
+      })),
+    []
+  )
 
   // Sample destination suggestions
   const allDestinations = [
@@ -80,12 +70,25 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
     'Golden Triangle (Delhi-Agra-Jaipur)'
   ]
 
-  // Auto-rotate background images
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
-    }, 10000) // Change every 10 seconds
+  // Auto-rotate background images: load the next image fully before switching
+  const currentImageIndexRef = useRef(0)
 
+  useEffect(() => {
+    currentImageIndexRef.current = currentImageIndex
+  }, [currentImageIndex])
+
+  useEffect(() => {
+    const switchImage = () => {
+      const nextIndex = (currentImageIndexRef.current + 1) % heroImages.length
+      const image = new Image()
+      image.onload = () => {
+        currentImageIndexRef.current = nextIndex
+        setCurrentImageIndex(nextIndex)
+      }
+      image.src = heroImages[nextIndex].url
+    }
+
+    const interval = setInterval(switchImage, 10000) // Change every 10 seconds
     return () => clearInterval(interval)
   }, [heroImages.length])
 
@@ -172,27 +175,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden parallax-hero">
       {/* Background Image with Parallax */}
       <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentImageIndex}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 2, ease: 'easeInOut' }}
-            style={{
-              backgroundImage: `url(${currentImage.url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
-            }}
-          >
-            {/* Animated Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-saffron/30 via-primary-royal-blue/20 to-primary-emerald/30" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-            <div className="absolute inset-0 grain-overlay" />
-          </motion.div>
-        </AnimatePresence>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${currentImage.url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          {/* Animated Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-saffron/30 via-primary-royal-blue/20 to-primary-emerald/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="absolute inset-0 grain-overlay" />
+        </div>
 
         {/* Floating Particles */}
         <div className="absolute inset-0">
@@ -480,10 +476,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   variant="primary"
                   size="large"
                   fullWidth
-                  icon={<ArrowRight className="w-5 h-5" />}
-                  className="bg-gradient-to-r from-accent-electric-yellow to-accent-coral-pink text-black font-bold text-lg shadow-glass-intense hover:shadow-3d-hover border-2 border-accent-electric-yellow/50 hover:scale-105"
+                  icon={undefined}
+                  className="bg-gradient-to-r from-accent-electric-yellow to-accent-coral-pink text-white font-bold text-lg shadow-glass-intense hover:shadow-3d-hover border-2 border-accent-electric-yellow/50 hover:scale-105"
                 >
-                  Explore Safely
+                  <span>Explore Safely</span>
                 </Button>
               </motion.div>
 

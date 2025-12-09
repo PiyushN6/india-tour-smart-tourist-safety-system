@@ -103,7 +103,7 @@ const UserProfile: React.FC = () => {
                         onError={() => setAvatarError(true)}
                       />
                     ) : (
-                      <span className="text-white text-3xl font-semibold">
+                      <span className="text-slate-900 text-3xl font-semibold">
                         {avatarInitial}
                       </span>
                     )}

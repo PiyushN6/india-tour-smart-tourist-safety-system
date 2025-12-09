@@ -445,17 +445,23 @@ const Navbar: React.FC = () => {
                         )}
                       </div>
                       <div className="divide-y divide-gray-100">
-                        {getActiveNotifications().length === 0 ? (
+                        {getActiveNotifications().filter((n) => !n.isRead).length === 0 ? (
                           <div className="px-4 py-6 text-sm text-gray-500 text-center">
                             You're all caught up.
                           </div>
                         ) : (
-                          getActiveNotifications().map((n) => (
+                          getActiveNotifications()
+                            .filter((n) => !n.isRead)
+                            .map((n) => (
                             <button
                               key={n.id}
                               type="button"
                               onClick={() => {
                                 markAsRead(n.id)
+                                if (n.actionUrl) {
+                                  navigate(n.actionUrl)
+                                }
+                                closeDropdowns()
                               }}
                               className={cn(
                                 'w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex flex-col gap-1',
@@ -514,7 +520,7 @@ const Navbar: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
                       transition={{ duration: 0.2, ease: 'easeInOut' }}
-                      className="absolute right-0 mt-2 w-44 rounded-2xl bg-white/90 backdrop-blur-lg shadow-xl border border-gray-100 z-50"
+                      className="absolute right-0 mt-2 w-44 rounded-2xl bg-white/90 backdrop-blur-lg shadow-xl border border-gray-100 z-50 overflow-hidden"
                     >
                       <button
                         type="button"
@@ -523,8 +529,10 @@ const Navbar: React.FC = () => {
                           closeDropdowns()
                         }}
                         className={cn(
-                          'w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between',
-                          lang === 'en' && 'font-semibold text-primary-saffron'
+                          'w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 rounded-lg',
+                          lang === 'en'
+                            ? 'font-semibold text-primary-saffron'
+                            : 'text-gray-800 hover:text-primary-saffron'
                         )}
                       >
                         <span>English</span>
@@ -537,8 +545,10 @@ const Navbar: React.FC = () => {
                           closeDropdowns()
                         }}
                         className={cn(
-                          'w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between',
-                          lang === 'hi' && 'font-semibold text-primary-saffron'
+                          'w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 rounded-lg',
+                          lang === 'hi'
+                            ? 'font-semibold text-primary-saffron'
+                            : 'text-gray-800 hover:text-primary-saffron'
                         )}
                       >
                         <span>हिंदी</span>

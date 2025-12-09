@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+import os
 
 from .core.config import settings
 from .db import Base, engine
@@ -44,6 +47,46 @@ def create_app() -> FastAPI:
         """Basic liveness endpoint for monitoring."""
 
         return {"status": "ok", "service": settings.PROJECT_NAME}
+
+    class ChatMessageIn(BaseModel):
+        role: str
+        content: str
+
+    class ChatRequest(BaseModel):
+        messages: List[ChatMessageIn]
+
+    class ChatResponse(BaseModel):
+        reply: str
+
+    @app.post("/api/chat", response_model=ChatResponse)
+    async def chat_endpoint(payload: ChatRequest) -> ChatResponse:
+        """Stub AI chat endpoint.
+
+        Returns a placeholder reply. When you add an OPENAI_API_KEY (or
+        compatible) environment variable and real provider integration, this
+        function can be updated to call the external AI service.
+        """
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return ChatResponse(
+                reply=(
+                    "AI assistant is not configured yet. Please set API KEY in the backend environment "
+                    "to enable AI responses."
+                )
+            )
+
+        # For now, just echo the last user message content to prove wiring.
+        last_content = ""
+        if payload.messages:
+            last_content = payload.messages[-1].content
+
+        return ChatResponse(
+            reply=(
+                "This is a placeholder AI reply. The server received: "
+                f"'{last_content}'. Replace this logic with a real AI API call."
+            )
+        )
 
     return app
 

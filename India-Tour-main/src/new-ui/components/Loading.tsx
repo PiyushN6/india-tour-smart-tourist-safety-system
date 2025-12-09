@@ -157,9 +157,9 @@ const Loading: React.FC<LoadingProps> = ({
 // Loading screen component for full screen loading
 export const LoadingScreen: React.FC<{ message?: string }> = ({ message }) => (
   <Loading
-    type="spinner"
+    type="shimmer"
     size="large"
-    text={message || 'Discovering Incredible India...'}
+    text={message || 'Preparing your safe journey across India...'}
     fullScreen={true}
   />
 )

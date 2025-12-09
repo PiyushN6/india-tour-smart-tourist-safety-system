@@ -237,6 +237,28 @@ export async function fetchTouristProfileByCodeAdmin(
   return res.json();
 }
 
+// ---- AI Chat helper ----
+
+export interface ChatApiMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export async function sendChatMessage(messages: ChatApiMessage[]): Promise<string> {
+  const res = await fetch(`${SAFETY_API_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Chat request failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return typeof data?.reply === 'string' ? data.reply : '';
+}
+
 export interface TouristProfilePayload {
   full_name: string;
   gender?: string | null;

@@ -1,3 +1,5 @@
+import type React from 'react'
+
 // Navigation and Routing Types
 export interface RouteConfig {
   path: string
@@ -212,7 +214,7 @@ export interface ChatMessage {
 export interface AICapability {
   name: string
   description: string
-  icon: string
+  icon: React.ReactNode
   isAvailable: boolean
   category: 'safety' | 'navigation' | 'translation' | 'emergency' | 'information'
 }
@@ -247,6 +249,7 @@ export interface LoadingProps {
   size?: 'small' | 'medium' | 'large'
   text?: string
   fullScreen?: boolean
+  className?: string
 }
 
 // Map and Location Types
