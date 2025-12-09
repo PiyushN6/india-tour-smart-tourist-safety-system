@@ -9,6 +9,13 @@ India Tour – Smart Tourist Safety System is a full‑stack web application tha
 - Supabase‑backed authentication (Google Sign‑In)
 - Itinerary management and safety alerts
 
+**Live deployments:**
+
+- Frontend (Netlify): `https://india-tour-smart-tourist-safety.netlify.app`
+- Backend API (Render): `https://india-tour-smart-tourist-safety-system.onrender.com`
+  - Health check: `https://india-tour-smart-tourist-safety-system.onrender.com/health`
+  - Interactive docs (Swagger UI): `https://india-tour-smart-tourist-safety-system.onrender.com/docs`
+
 The project is split into three major parts:
 
 - **Frontend**: React + Vite (TypeScript) deployed on **Netlify**

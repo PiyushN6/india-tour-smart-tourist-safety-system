@@ -19,7 +19,11 @@ India Tour – Smart Tourist Safety System is a full‑stack web application for
 ### 1.2 Major Parts
 
 - **Frontend** – React + Vite + TypeScript SPA, deployed on Netlify.
+  - **Live URL:** `https://india-tour-smart-tourist-safety.netlify.app`
 - **Backend** – FastAPI application, deployed on Render.
+  - **Live API base URL:** `https://india-tour-smart-tourist-safety-system.onrender.com`
+  - Health check: `https://india-tour-smart-tourist-safety-system.onrender.com/health`
+  - Interactive docs (Swagger UI): `https://india-tour-smart-tourist-safety-system.onrender.com/docs`
 - **Database & Auth** – Supabase (PostgreSQL + Auth + Realtime + Storage).
 
 ---
