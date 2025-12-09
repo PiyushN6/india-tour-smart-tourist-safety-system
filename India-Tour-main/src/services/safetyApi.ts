@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 
-const SAFETY_API_BASE_URL = import.meta.env.VITE_SAFETY_API_URL || 'http://localhost:8000';
+const SAFETY_API_BASE_URL =
+  import.meta.env.VITE_SAFETY_API_BASE_URL ?? 'http://localhost:8000';
 
 export interface SafetyHealth {
   status: string;
