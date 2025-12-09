@@ -291,6 +291,28 @@ Core integration layer to the FastAPI backend.
 - `requirements.txt` – pinned Python dependencies.
 - `tests/test_safety_core.py` – backend tests verifying safety logic.
 
+### 4.3 Admin Users (Env-Based)
+
+- Admin users are **not** determined by a DB column like `is_admin`; instead they are controlled via the environment variable `SAFETY_ADMIN_EMAILS`.
+- Typical flow:
+  1. Frontend authenticates with Supabase (Google OAuth).
+  2. Supabase issues a JWT; frontend sends it as `Authorization: Bearer <token>` to FastAPI.
+  3. FastAPI dependency (e.g. `get_current_user`) validates the JWT using Supabase settings.
+  4. An admin-specific dependency (e.g. `get_admin_user`) checks whether the user’s email appears in `SAFETY_ADMIN_EMAILS`.
+  5. Admin-only routes depend on `get_admin_user`, returning 403 for non-admins.
+
+**Configuring admins on Render:**
+
+- In Render → FastAPI service → Environment, set:
+
+  ```text
+  SAFETY_ADMIN_EMAILS=["admin1@example.com","admin2@example.com"]
+  ```
+
+  or, depending on how parsing is implemented, a comma-separated string.
+
+After redeploy, any user who logs in with an email from this list is treated as admin.
+
 ### 4.1 `app/main.py`
 
 Main responsibilities:
@@ -482,6 +504,56 @@ VALUES (
 
 Replace the placeholder values (`<STATE_NAME>`, `<CITY_NAME>`, etc.) with real data when executing these queries.
 
+### 5.5 Risk Zones: Storage and Example Insert
+
+- Risk zones for the safety map are stored in a `public.risk_zones` table.
+- Important columns (see Supabase table editor):
+  - `name` (TEXT)
+  - `description` (TEXT)
+  - `risk_level` (TEXT)
+  - `category` (TEXT, optional)
+  - `city` (TEXT, optional)
+  - `geom` (JSON) – must include a `bbox` field used by the frontend
+  - `is_active` (BOOLEAN)
+  - `created_by` (TEXT)
+- The frontend expects `zone.geom.bbox` to be an array:
+
+```json
+{
+  "bbox": [minLng, minLat, maxLng, maxLat]
+}
+```
+
+**Example: insert a risk zone using Supabase SQL editor**
+
+```sql
+INSERT INTO public.risk_zones (
+  name,
+  description,
+  risk_level,
+  category,
+  city,
+  geom,
+  is_active,
+  created_by
+)
+VALUES (
+  'Old Delhi High-Risk Area',
+  'Area with frequent pickpocketing and crowd-related risks.',
+  'HIGH',                     -- or CRITICAL / MEDIUM / LOW
+  'crime',
+  'Delhi',
+  jsonb_build_object(
+    'bbox',
+    ARRAY[77.1980, 28.6400, 77.2120, 28.6520]  -- [minLng, minLat, maxLng, maxLat]
+  ),
+  TRUE,
+  'manual_seed'
+);
+```
+
+After running this insert, reloading the frontend and zooming to the specified area will show the new polygon on the safety map (drawn via `SafetyMapPage.tsx`).
+
 ---
 
 ## 6. Environment Configuration
@@ -651,7 +723,86 @@ git push origin main     # push to GitHub
 
 ---
 
-## 9. Extensibility Guidelines
+## 9. Feature Catalog – Frontend ↔ Backend ↔ Database
+
+This section summarizes the main user-facing features and clearly maps them across **frontend components**, **API calls**, and **database tables**.
+
+### 9.1 Safety Map & Safety Dashboard
+
+- **User experience**: interactive map with user location, radius circle, and colored polygons for risk zones, plus dashboard-style safety info.
+- **Frontend**:
+  - `src/features/safety/SafetyMapPage.tsx` using React Leaflet.
+  - New-UI safety-related sections in `new-ui/features/safety/`.
+- **API / Backend**:
+  - `safetyApi.ts` → `fetchRiskZones()` → `GET /risk-zones` (router `risk_zones.py`).
+- **Database**:
+  - `risk_zones` table, with JSON `geom` (containing `bbox`), `risk_level`, `category`, `city`, and timestamps.
+
+### 9.2 Destinations & Places
+
+- **User experience**: explore states, cities, and places; apply filters; view ratings and details.
+- **Frontend**:
+  - Classic `features/destinations` + destination pages.
+  - New-UI `new-ui/features/destinations/` cards and carousels.
+- **API / Data**:
+  - Mostly direct Supabase client queries from contexts (`@supabase/supabase-js`).
+  - Optional use of views/functions like `state_statistics` and `search_places()`.
+- **Database**:
+  - `states`, `cities`, `places`, `events`, `local_specialties`, `transport_options`, `reviews`.
+
+### 9.3 Itineraries
+
+- **User experience**: build and save trip plans, then reopen them later.
+- **Frontend**:
+  - Itinerary contexts (ItineraryContext) and components under `features/itinerary` and new UI.
+- **API / Backend**:
+  - `safetyApi.ts`: `saveItinerary()`, `getUserItineraries()` → router `itinerary.py`.
+  - Uses Supabase JWT via `get_current_user()`.
+- **Database**:
+  - `itineraries`, `itinerary_items`, joined with `places` and tourist/user table.
+
+### 9.4 Digital Safety ID
+
+- **User experience**: view a digital ID card with emergency details and a unique ID.
+- **Frontend**:
+  - `DigitalIDPage.tsx` and related components/contexts.
+- **API / Backend**:
+  - `safetyApi.ts`: `getDigitalId()` / `createOrUpdateDigitalId()` → digital-ID endpoints.
+  - Router integrated with `tourists`/profile logic and `get_current_user()`.
+- **Database**:
+  - `digital_ids` table with RLS policies so users see only their own IDs.
+
+### 9.5 Alerts & Notifications
+
+- **User experience**: notification bell and dropdown, plus possible banners.
+- **Frontend**:
+  - `NotificationContext.tsx`, Navbar notification UI, alert components.
+- **API / Backend**:
+  - `safetyApi.ts`: `getAlerts()`, `acknowledgeAlert()` → `alerts.py` router.
+- **Database**:
+  - `alerts` table with user references and read/ack flags.
+
+### 9.6 Admin Panel
+
+- **User experience**: admin-only interface for managing data (incidents, content, etc.).
+- **Frontend**:
+  - `AdminPage.tsx` and admin components.
+- **API / Backend**:
+  - Uses existing routers (e.g. `incidents.py`, `itinerary.py`) but protected with admin dependency.
+  - Admin detection via `SAFETY_ADMIN_EMAILS` + `get_admin_user()`.
+
+### 9.7 AI Chatbot
+
+- **User experience**: conversational assistant for questions about safety and travel.
+- **Frontend**:
+  - `new-ui/Chatbot.tsx` plus message types in `new-ui/types/index.ts`.
+- **API / Backend**:
+  - When enabled: `sendChatMessage()` style helper → `/api/chat` endpoint.
+  - Backend uses `OPENAI_API_KEY` (or similar) to reach an external LLM.
+
+---
+
+## 10. Extensibility Guidelines
 
 - **New Frontend Feature**
   - Create a new file under `src/new-ui/features/<domain>/`.

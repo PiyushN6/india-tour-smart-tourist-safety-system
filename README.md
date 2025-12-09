@@ -244,6 +244,76 @@ Configure these in **Render → Service → Environment** for the FastAPI servic
 
 ---
 
+## 5.3 Admin Users (How to Make an Email Admin)
+
+- Admins are **not** stored in the database; they are configured via an env var on the backend:
+  - `SAFETY_ADMIN_EMAILS`
+- Flow:
+  1. User logs in via Supabase (Google OAuth).
+  2. FastAPI reads the user’s email from the Supabase JWT.
+  3. Backend loads `SAFETY_ADMIN_EMAILS` and checks whether the email is in that list.
+  4. If yes → user is treated as admin; admin-only routes use a dependency like `get_admin_user()`.
+
+**To make an email admin:**
+
+1. Go to **Render → FastAPI service → Environment**.
+2. Add or update:
+
+   ```text
+   SAFETY_ADMIN_EMAILS=["your-admin@example.com"]
+   ```
+
+   or a comma-separated list, depending on config: `your-admin@example.com,other@example.com`.
+3. Save and redeploy / restart the backend.
+4. Log in with that email and open the Admin UI (e.g. `/admin`).
+
+---
+
+## 5.4 Risk Zones and the Map (How to Add Zones)
+
+- Risk zones are stored in a `risk_zones` table in Supabase/Postgres.
+- The `geom` column is JSON and the frontend expects a `bbox` field:
+
+  ```json
+  {
+    "bbox": [minLng, minLat, maxLng, maxLat]
+  }
+  ```
+
+- `SafetyMapPage.tsx` reads `zone.geom.bbox`, constructs a polygon, and colors it by `risk_level`.
+
+**Example: insert a risk zone via Supabase SQL editor**
+
+```sql
+INSERT INTO public.risk_zones (
+  name,
+  description,
+  risk_level,
+  category,
+  city,
+  geom,
+  is_active,
+  created_by
+)
+VALUES (
+  'Old Delhi High-Risk Area',
+  'Area with frequent pickpocketing and crowd-related risks.',
+  'HIGH',                     -- or CRITICAL / MEDIUM / LOW
+  'crime',
+  'Delhi',
+  jsonb_build_object(
+    'bbox',
+    ARRAY[77.1980, 28.6400, 77.2120, 28.6520]  -- [minLng, minLat, maxLng, maxLat]
+  ),
+  TRUE,
+  'manual_seed'
+);
+```
+
+After running this in the Supabase **SQL editor**, reload the frontend and zoom to that area; the new polygon should appear on the safety map.
+
+---
+
 ## 6. Database / Supabase
 
 ### 6.1 Supabase Project & Local Config
@@ -380,6 +450,69 @@ Now:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8000`
+
+---
+
+## 8. Feature Catalog – What the App Provides
+
+This section briefly summarizes the main features and how they connect **frontend → backend → database**.
+
+### 8.1 Safety Map & Safety Dashboard
+
+- **User view**: Interactive map with user location, safety radius, and colored risk zones; dashboard cards summarizing risk.
+- **Frontend**: `src/features/safety/SafetyMapPage.tsx` (React Leaflet), new-UI safety sections.
+- **Backend & DB**:
+  - `safetyApi.ts` → `GET /risk-zones` (router `risk_zones.py`).
+  - Table: `risk_zones` with JSON `geom.bbox`, `risk_level`, `city`, etc.
+- **Flow**: frontend calls `/risk-zones` → backend reads `risk_zones` → returns JSON → React Leaflet draws polygons and tooltips.
+
+### 8.2 Destinations & Places Explorer
+
+- **User view**: Lists of states, cities, and places with images, ratings, and filters.
+- **Frontend**: classic `features/destinations`, new-UI destination components.
+- **Data source**: mostly direct Supabase queries from contexts using `@supabase/supabase-js`.
+- **DB**: `states`, `cities`, `places`, `events`, `local_specialties`, `transport_options`, `reviews`, views/functions like `state_statistics`, `search_places`.
+
+### 8.3 Itineraries (Plan, Save, Reload Trips)
+
+- **User view**: Build itineraries from chosen places, then save and revisit later.
+- **Frontend**: itinerary contexts and components, `ItineraryAddButton`, itinerary pages.
+- **Backend & DB**:
+  - `safetyApi.ts`: `saveItinerary()`, `getUserItineraries()`.
+  - Router: `itinerary.py`; tables: `itineraries`, `itinerary_items` (+ links to `places`, `tourists`).
+- **Flow**: React context collects selections → POST `/itineraries` → backend validates & saves → later GET `/itineraries` returns joined data.
+
+### 8.4 Digital Safety ID
+
+- **User view**: Digital ID card with personal + emergency contact info and a unique ID.
+- **Frontend**: `DigitalIDPage.tsx` and related components.
+- **Backend & DB**:
+  - `safetyApi.ts`: helpers like `getDigitalId()` / `createOrUpdateDigitalId()`.
+  - Router: digital-ID endpoints (often in `tourists.py`); table: `digital_ids` with RLS so each user sees only their own record.
+
+### 8.5 Alerts & Notifications
+
+- **User view**: Notification bell with unread count + dropdown listing alerts; sometimes banners.
+- **Frontend**: `NotificationContext.tsx`, new-UI Navbar dropdown, alert widgets.
+- **Backend & DB**:
+  - `safetyApi.ts`: `getAlerts()`, `acknowledgeAlert()`.
+  - Router: `alerts.py`; table: `alerts` scoped by user.
+
+### 8.6 Admin Panel
+
+- **User view**: Admin-only pages to inspect/manage incidents, content, etc.
+- **Frontend**: `AdminPage.tsx` and admin components.
+- **Backend & DB**:
+  - Uses existing routers (`incidents.py`, `itinerary.py`, etc.) behind stronger auth.
+  - Admin status comes from env `SAFETY_ADMIN_EMAILS` + dependency like `get_admin_user()`.
+
+### 8.7 AI Chatbot (Optional, When Connected)
+
+- **User view**: Floating chat assistant for safety/travel questions.
+- **Frontend**: `new-ui/Chatbot.tsx` + types in `new-ui/types`.
+- **Backend & external services**:
+  - Planned helper (e.g. `sendChatMessage()`) calling FastAPI `/api/chat`.
+  - Backend uses `OPENAI_API_KEY` (or similar) to talk to an LLM and returns the response.
 
 ---
 
