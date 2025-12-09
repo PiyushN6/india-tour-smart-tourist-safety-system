@@ -19,7 +19,10 @@ supabase/.temp/
 .env
 .env.*
 !.env.example
-.windsurf/
+
 
 .bolt/
 .windsurf/
+
+# VS Code workspaces
+*.code-workspace
