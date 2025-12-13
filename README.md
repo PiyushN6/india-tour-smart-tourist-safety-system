@@ -516,11 +516,11 @@ This section briefly summarizes the main features and how they connect **fronten
 
 ---
 
-## 8. Commands Reference
+## 9. Commands Reference
 
 This section summarizes the most important commands from `package.json` and the backend setup.
 
-### 8.1 Frontend (Vite + React)
+### 9.1 Frontend (Vite + React)
 
 From `India-Tour-main/`:
 
@@ -549,7 +549,7 @@ npm run seed:places   # seeds places data
 npm run db:migrate:digital-id
 ```
 
-### 8.2 Backend (FastAPI)
+### 9.2 Backend (FastAPI)
 
 From `india-tour-safety-api/`:
 
@@ -584,9 +584,9 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
 
 ---
 
-## 9. Deployment
+## 10. Deployment
 
-### 7.1 Backend on Render
+### 10.1 Backend on Render
 
 1. **Create a new Web Service** from this repo, selecting `india-tour-safety-api` directory (or specify it in build command if needed).
 2. **Build command:**
@@ -609,7 +609,7 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
    https://india-tour-smart-tourist-safety-system.onrender.com
    ```
 
-### 7.2 Frontend on Netlify
+### 10.2 Frontend on Netlify
 
 1. **New site from Git** → connect this GitHub repo.
 2. **Build settings:**
@@ -630,9 +630,9 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
-### 8.1 CORS Errors (Netlify → Render)
+### 11.1 CORS Errors (Netlify → Render)
 
 **Symptoms:**
 
@@ -649,7 +649,7 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
 2. Redeploy / restart the backend.
 3. Hard refresh the Netlify site.
 
-### 8.2 Frontend Still Calls localhost in Production
+### 11.2 Frontend Still Calls localhost in Production
 
 **Symptoms:**
 
@@ -666,7 +666,7 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
 - Confirm `safetyApi.ts` uses `import.meta.env.VITE_SAFETY_API_BASE_URL`.
 - Rebuild and redeploy Netlify.
 
-### 8.3 Mapbox Token / Map Not Visible
+### 11.3 Mapbox Token / Map Not Visible
 
 **Symptoms:**
 
@@ -678,7 +678,7 @@ The `tests/` directory currently contains backend tests such as `test_safety_cor
 - Ensure `SafetyMapPage.tsx` reads `VITE_MAPBOX_ACCESS_TOKEN` and not an old env name.
 - Redeploy frontend if env vars changed.
 
-### 8.4 Leaflet TypeScript Errors
+### 11.4 Leaflet TypeScript Errors
 
 **Symptoms:**
 
@@ -694,7 +694,7 @@ npm install --save-dev @types/leaflet
 
 Then restart the TypeScript server / editor.
 
-### 8.5 Google OAuth Failures
+### 11.5 Google OAuth Failures
 
 **Checklist:**
 
@@ -714,7 +714,7 @@ Then restart the TypeScript server / editor.
 
 ---
 
-## 11. Repository Layout
+## 12. Repository Layout
 
 ```text
 root /
@@ -752,7 +752,7 @@ Root‑level `package.json` and `package-lock.json` were intentionally removed i
 
 ---
 
-## 12. Extending the Project
+## 13. Extending the Project
 
 - **Add new API endpoint**
   - Create a router module under `india-tour-safety-api/app/routers/`.
